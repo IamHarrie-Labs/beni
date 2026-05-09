@@ -1,25 +1,77 @@
-import { Constr, Data, type Lucid, type Script, type UTxO } from "lucid-cardano";
-import type { BeniWallet, GuardrailConfig, SpendResult } from "./types.js";
+import { applyParamsToScript, Constr, Data, type Lucid, type UTxO } from "lucid-cardano";
+import type { BeniWallet, CreateWalletConfig, GuardrailConfig, SpendResult } from "./types.js";
 import { encodeDatum, WalletDatumSchema, type WalletDatumType, datumToConfig } from "./datum.js";
 import { assertValidSpend, computeNewWindowState } from "./validation.js";
 import { NoScriptUTxOError, InvalidAddressError } from "./errors.js";
 import { makeScript } from "./index-internal.js";
+import { AGENT_WALLET_CBOR, THREAD_TOKEN_BASE_CBOR } from "./validators.js";
 
 // ── Redeemer constants ────────────────────────────────────────────────────────
-// Must match the WalletRedeemer constructor indices in agent_wallet.ak:
-//   Spend = 0, OwnerAction = 1, FreezeWallet = 2
-const SpendRedeemer = Data.to(new Constr(0, []));
-const OwnerActionRedeemer = Data.to(new Constr(1, []));
+// Constructor indices must match WalletRedeemer in agent_wallet.ak:
+//   Spend = 0  |  OwnerAction = 1  |  FreezeWallet = 2
+const SpendRedeemer        = Data.to(new Constr(0, []));
+const OwnerActionRedeemer  = Data.to(new Constr(1, []));
 const FreezeWalletRedeemer = Data.to(new Constr(2, []));
 
-async function fetchScriptUTxO(lucid: Lucid, scriptAddress: string): Promise<UTxO> {
-  const utxos = await lucid.utxosAt(scriptAddress);
-  if (utxos.length === 0) throw new NoScriptUTxOError(scriptAddress);
-  // Use the UTxO that carries the thread token (policy embedded in datum)
-  return utxos[0];
+// ── Shared validator ──────────────────────────────────────────────────────────
+// The agent_wallet script is non-parameterized — one address for all Beni
+// wallets. Individual wallets are differentiated by their thread token policy
+// ID embedded in the datum.
+const agentWalletScript = makeScript(AGENT_WALLET_CBOR);
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Build and apply the thread_token minting policy for a specific seed UTxO.
+ * Returns the parameterized script and its policy ID.
+ *
+ * The one-shot minting policy is parameterized by an OutputReference:
+ *   Constr(0, [transaction_id: ByteArray, output_index: Integer])
+ * This matches the Aiken definition in cardano/transaction/OutputReference.
+ */
+function buildThreadTokenPolicy(
+  lucid: Lucid,
+  seedUtxo: UTxO,
+): { script: ReturnType<typeof makeScript>; policyId: string; cbor: string } {
+  const seedParam = new Constr(0, [
+    seedUtxo.txHash,                 // transaction_id (hex ByteArray)
+    BigInt(seedUtxo.outputIndex),    // output_index (Integer)
+  ]);
+  const cbor = applyParamsToScript(THREAD_TOKEN_BASE_CBOR, [seedParam]);
+  const script = makeScript(cbor);
+  const policyId = lucid.utils.mintingPolicyToId(script);
+  return { script, policyId, cbor };
 }
 
-function getCredentialHash(lucid: Lucid, address: string): string {
+/**
+ * Find the authoritative script UTxO — the one carrying the thread token.
+ * The thread token proves this is the genuine Beni state UTxO (not an
+ * attacker-planted UTxO with a fake datum).
+ */
+async function fetchScriptUTxO(lucid: Lucid, wallet: BeniWallet): Promise<UTxO> {
+  const utxos = await lucid.utxosAt(wallet.scriptAddress);
+  if (utxos.length === 0) throw new NoScriptUTxOError(wallet.scriptAddress);
+
+  // Prefer the UTxO that carries exactly 1 thread token (the genuine state)
+  const threadTokenUnit = wallet.config.threadTokenPolicyId; // empty token name → unit = policyId
+  const authoritative = utxos.find(u => (u.assets[threadTokenUnit] ?? 0n) === 1n);
+  return authoritative ?? utxos[0];
+}
+
+/**
+ * Read and decode the current on-chain config from a script UTxO.
+ */
+function readConfig(utxo: UTxO): GuardrailConfig {
+  const raw = utxo.datum;
+  if (!raw) throw new Error("Script UTxO is missing an inline datum");
+  const datum = Data.from<WalletDatumType>(raw, WalletDatumSchema as unknown as WalletDatumType);
+  return datumToConfig(datum);
+}
+
+/**
+ * Extract the payment credential hash from a bech32 address.
+ */
+function credentialHash(lucid: Lucid, address: string): string {
   const details = lucid.utils.getAddressDetails(address);
   if (!details.paymentCredential) throw new InvalidAddressError(address);
   return details.paymentCredential.hash;
@@ -28,72 +80,106 @@ function getCredentialHash(lucid: Lucid, address: string): string {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Deploys a new Beni agent wallet on-chain.
+ * Deploy a new Beni agent wallet on-chain.
  *
- * Creates the script UTxO and mints the thread token NFT in one atomic
- * transaction. The caller must have enough ADA in their wallet to fund
- * the initial balance (default 5 ADA) plus transaction fees.
+ * In one atomic transaction this function:
+ *  1. Picks a seed UTxO from the owner's wallet to parameterize the minting policy
+ *  2. Mints exactly 1 thread token NFT (one-shot, can never be minted again)
+ *  3. Locks the initial ADA + thread token at the script address with the config datum
  *
- * @param lucid      - Lucid instance with an owner wallet selected
- * @param config     - Guardrail rules for this agent wallet
- * @param initialAda - Initial ADA to lock in the wallet (default 5)
+ * The thread token is the on-chain proof-of-authenticity for the wallet's state
+ * UTxO. The agent_wallet validator checks for it on every spend, preventing
+ * an attacker from planting a fake UTxO with a forged datum.
+ *
+ * @param lucid      - Lucid instance with the owner's wallet selected
+ * @param config     - Guardrail rules (caps, whitelist, owner key)
+ * @param initialAda - ADA to lock in the wallet at creation (default 5)
+ * @returns          - BeniWallet with script address, CBORs, and full config
  */
 export async function createAgentWallet(
   lucid: Lucid,
-  config: GuardrailConfig,
+  config: CreateWalletConfig,
   initialAda = 5n,
 ): Promise<BeniWallet> {
-  const spendScript = makeScript(config.threadTokenPolicyId); // placeholder — see note below
-  const mintScript = makeScript(config.threadTokenPolicyId);
+  // 1. Pick a UTxO from the owner's wallet as the one-shot seed.
+  //    This UTxO's reference is baked into the thread token minting policy,
+  //    making the resulting policy ID unique to this wallet.
+  const ownerUtxos = await lucid.wallet.getUtxos();
+  if (ownerUtxos.length === 0) {
+    throw new Error(
+      "Owner wallet has no UTxOs. Fund it from the Preview testnet faucet first: " +
+      "https://docs.cardano.org/cardano-testnet/tools/faucet/",
+    );
+  }
+  const seedUtxo = ownerUtxos[0];
 
-  const scriptAddress = lucid.utils.validatorToAddress(makeScript(
-    // NOTE: After `aiken build`, replace these strings with plutus.json compiled codes.
-    // For now the SDK exports the address derivation pattern; actual CBOR is injected
-    // at runtime from the plutus.json file loaded by the caller.
-    config.threadTokenPolicyId, // this will be the real validator CBOR
-  ));
+  // 2. Build the parameterized thread token minting policy.
+  const { script: threadTokenScript, policyId, cbor: threadTokenCbor } =
+    buildThreadTokenPolicy(lucid, seedUtxo);
+  const threadTokenUnit = policyId; // empty token name → unit is just the policy ID
 
-  const policyId = config.threadTokenPolicyId;
-  const threadTokenUnit = policyId + ""; // policy + empty token name
+  // 3. Derive the script address from the fixed agent_wallet validator.
+  const scriptAddress = lucid.utils.validatorToAddress(agentWalletScript);
 
-  const initialLovelace = initialAda * 1_000_000n;
-  const datumCbor = encodeDatum(config);
+  // 4. Build the full config with the derived thread token policy ID.
+  //    lastWindowStart is set to now; windowSpent starts at zero.
+  const fullConfig: GuardrailConfig = {
+    ...config,
+    threadTokenPolicyId: policyId,
+    lastWindowStart: BigInt(Date.now()),
+    windowSpent: 0n,
+  };
+  const datumCbor = encodeDatum(fullConfig);
 
+  // 5. Build the creation transaction:
+  //    - collectFrom([seedUtxo]) forces the seed UTxO into tx.inputs
+  //      so the one-shot minting policy can verify it is being consumed
+  //    - mintAssets mints exactly 1 thread token (empty token name)
+  //    - payToContract locks the initial balance + thread token at the script
   const tx = await lucid
     .newTx()
+    .collectFrom([seedUtxo])
     .mintAssets({ [threadTokenUnit]: 1n }, Data.to(new Constr(0, [])))
-    .attachMintingPolicy(mintScript)
+    .attachMintingPolicy(threadTokenScript)
     .payToContract(
       scriptAddress,
       { inline: datumCbor },
-      { lovelace: initialLovelace, [threadTokenUnit]: 1n },
+      { lovelace: initialAda * 1_000_000n, [threadTokenUnit]: 1n },
     )
     .complete();
 
   const signed = await tx.sign().complete();
-  await signed.submit();
+  const txHash = await signed.submit();
+
+  console.log(`[Beni] Agent wallet created. TX: ${txHash}`);
+  console.log(`[Beni] Script address: ${scriptAddress}`);
+  console.log(`[Beni] Thread token policy: ${policyId}`);
 
   return {
     scriptAddress,
-    scriptCbor: config.threadTokenPolicyId, // caller sets real CBOR
-    threadTokenPolicyCbor: config.threadTokenPolicyId,
-    config,
+    scriptCbor: AGENT_WALLET_CBOR,
+    threadTokenPolicyCbor: threadTokenCbor,
+    config: fullConfig,
   };
 }
 
 /**
- * Submits a guarded spend from the agent wallet.
+ * Submit a guarded spend from the agent wallet.
  *
- * Validates all guardrails client-side first (fast, clear errors), then
- * builds and submits the transaction. The on-chain validator re-checks
- * everything — client-side validation is for UX only.
+ * Client-side guardrail checks run first for fast, readable errors. The
+ * on-chain validator re-checks everything — client-side is UX only.
  *
- * For amounts above per_tx_cap, use queueSpend() + approveSpend() instead.
+ * For amounts above perTxCapLovelace, use queueSpend() + approveSpend()
+ * instead — this function will throw a GuardrailViolationError.
  *
- * @param lucid     - Lucid instance with the agent wallet selected
+ * The validity range is MANDATORY: the validator reads tx.validity_range
+ * lower_bound for its rolling window time check.
+ *
+ * @param lucid     - Lucid instance with the agent's signing key selected
  * @param wallet    - BeniWallet returned from createAgentWallet
  * @param toAddress - Destination bech32 address
  * @param lovelace  - Amount to send in lovelace
+ * @returns         - TX hash + updated config (persist this for next call)
  */
 export async function agentSpend(
   lucid: Lucid,
@@ -102,40 +188,40 @@ export async function agentSpend(
   lovelace: bigint,
 ): Promise<SpendResult> {
   const nowMs = BigInt(Date.now());
-  const toCredHash = getCredentialHash(lucid, toAddress);
+  const toCredHash = credentialHash(lucid, toAddress);
 
-  // Client-side guardrail check — throws typed error if violated
+  // Client-side check: throws GuardrailViolationError or WalletFrozenError
   assertValidSpend(wallet.config, toCredHash, lovelace, nowMs);
 
-  const utxo = await fetchScriptUTxO(lucid, wallet.scriptAddress);
-  const rawDatum = utxo.datum ?? utxo.datumHash;
-  if (!rawDatum) throw new Error("Script UTxO has no inline datum");
+  // Fetch the authoritative on-chain UTxO (the one with the thread token)
+  const utxo = await fetchScriptUTxO(lucid, wallet);
 
-  const currentConfig = datumToConfig(Data.from<WalletDatumType>(rawDatum, WalletDatumSchema as unknown as WalletDatumType));
+  // Read the on-chain config — this is the canonical source of truth
+  // (guards against the caller passing a stale wallet.config)
+  const currentConfig = readConfig(utxo);
+
+  // Compute the new window state to write into the continuing output datum.
+  // This MUST match what the validator computes or the tx will be rejected.
   const windowUpdate = computeNewWindowState(currentConfig, lovelace, nowMs);
   const newConfig: GuardrailConfig = { ...currentConfig, ...windowUpdate };
   const newDatumCbor = encodeDatum(newConfig);
 
-  const script = makeScript(wallet.scriptCbor);
-  const threadTokenUnit = wallet.config.threadTokenPolicyId + "";
-
-  // Remaining lovelace back to script (current balance minus what we're sending)
+  const threadTokenUnit = wallet.config.threadTokenPolicyId;
   const currentLovelace = utxo.assets.lovelace ?? 0n;
-  const continuingLovelace = currentLovelace - lovelace;
 
   const tx = await lucid
     .newTx()
     .collectFrom([utxo], SpendRedeemer)
-    .attachSpendingValidator(script)
+    .attachSpendingValidator(agentWalletScript)
     // Continuing output: updated datum + thread token stays locked
     .payToContract(
       wallet.scriptAddress,
       { inline: newDatumCbor },
-      { lovelace: continuingLovelace, [threadTokenUnit]: 1n },
+      { lovelace: currentLovelace - lovelace, [threadTokenUnit]: 1n },
     )
-    // Payment to destination
+    // Payment to the destination
     .payToAddress(toAddress, { lovelace })
-    // Validity range is REQUIRED — the validator reads lower_bound for the time check
+    // Validity range REQUIRED — the validator reads lower_bound for time
     .validFrom(Date.now() - 60_000)
     .validTo(Date.now() + 300_000)
     .complete();
@@ -149,42 +235,45 @@ export async function agentSpend(
 /**
  * Owner action: reclaim funds or update the wallet config.
  *
- * If newConfig is provided, sends funds back to the script with updated rules.
- * If newConfig is omitted, reclaims all funds to the owner's address.
+ * - If newConfig is provided, sends funds back to the script with updated rules.
+ * - If newConfig is omitted, reclaims all funds to the owner's address.
  *
- * The owner's wallet must be selected in the Lucid instance.
+ * The owner's signing key must be selected in the Lucid instance.
+ * Returns the transaction hash.
  */
 export async function ownerAction(
   lucid: Lucid,
   wallet: BeniWallet,
   newConfig?: GuardrailConfig,
 ): Promise<string> {
-  const utxo = await fetchScriptUTxO(lucid, wallet.scriptAddress);
-  const script = makeScript(wallet.scriptCbor);
-  const threadTokenUnit = wallet.config.threadTokenPolicyId + "";
+  const utxo = await fetchScriptUTxO(lucid, wallet);
+  const threadTokenUnit = wallet.config.threadTokenPolicyId;
   const currentLovelace = utxo.assets.lovelace ?? 0n;
 
   let txBuilder = lucid
     .newTx()
     .collectFrom([utxo], OwnerActionRedeemer)
-    .attachSpendingValidator(script)
+    .attachSpendingValidator(agentWalletScript)
     .addSignerKey(wallet.config.ownerPkh)
     .validFrom(Date.now() - 60_000)
     .validTo(Date.now() + 300_000);
 
   if (newConfig) {
-    // Update config — funds stay in script with new datum
+    // Config update — funds stay in script under new rules
     const newDatumCbor = encodeDatum(newConfig);
+    // Keep a small reserve for the min-ADA requirement on the continuing output
+    const RESERVE = 2_000_000n;
     txBuilder = txBuilder.payToContract(
       wallet.scriptAddress,
       { inline: newDatumCbor },
-      { lovelace: currentLovelace - 300_000n, [threadTokenUnit]: 1n },
+      { lovelace: currentLovelace - RESERVE, [threadTokenUnit]: 1n },
     );
   } else {
-    // Reclaim — all funds go to owner, thread token burned implicitly
+    // Reclaim — send all value back to owner; thread token is unlocked with it
     const ownerAddress = await lucid.wallet.address();
     txBuilder = txBuilder.payToAddress(ownerAddress, {
       lovelace: currentLovelace - 300_000n,
+      [threadTokenUnit]: 1n,
     });
   }
 
@@ -194,28 +283,29 @@ export async function ownerAction(
 }
 
 /**
- * Emergency freeze: sets is_frozen = true on the continuing output.
- * All subsequent Spend redeemers will be rejected by the validator.
+ * Emergency freeze: sets is_frozen = true on the continuing output datum.
  *
- * The owner's wallet must be selected in the Lucid instance.
+ * After this transaction confirms, the agent_wallet validator will reject
+ * ALL Spend redeemers. Only an OwnerAction can unfreeze (by passing a new
+ * config with is_frozen: false via ownerAction(lucid, wallet, newConfig)).
+ *
+ * The owner's signing key must be selected in the Lucid instance.
+ * Returns the transaction hash.
  */
 export async function freezeWallet(lucid: Lucid, wallet: BeniWallet): Promise<string> {
-  const utxo = await fetchScriptUTxO(lucid, wallet.scriptAddress);
-  const script = makeScript(wallet.scriptCbor);
-  const threadTokenUnit = wallet.config.threadTokenPolicyId + "";
-  const currentLovelace = utxo.assets.lovelace ?? 0n;
+  const utxo = await fetchScriptUTxO(lucid, wallet);
+  const currentConfig = readConfig(utxo);
 
-  const rawDatum = utxo.datum ?? utxo.datumHash;
-  if (!rawDatum) throw new Error("Script UTxO has no inline datum");
-
-  const currentConfig = datumToConfig(Data.from<WalletDatumType>(rawDatum, WalletDatumSchema as unknown as WalletDatumType));
   const frozenConfig: GuardrailConfig = { ...currentConfig, isFrozen: true };
   const frozenDatumCbor = encodeDatum(frozenConfig);
+
+  const threadTokenUnit = wallet.config.threadTokenPolicyId;
+  const currentLovelace = utxo.assets.lovelace ?? 0n;
 
   const tx = await lucid
     .newTx()
     .collectFrom([utxo], FreezeWalletRedeemer)
-    .attachSpendingValidator(script)
+    .attachSpendingValidator(agentWalletScript)
     .payToContract(
       wallet.scriptAddress,
       { inline: frozenDatumCbor },
@@ -230,13 +320,15 @@ export async function freezeWallet(lucid: Lucid, wallet: BeniWallet): Promise<st
   return await signed.submit();
 }
 
-// Re-export everything callers need
+// ── Re-exports ────────────────────────────────────────────────────────────────
+
 export { makeLucid } from "./lucid-setup.js";
 export { getBalance, getDailyUsage, getTransactionHistory, getWalletStatus } from "./analytics.js";
 export { validateSpend, msUntilWindowReset } from "./validation.js";
 export { queueSpend, approveSpend, getPendingSpends, rejectSpend } from "./approvals.js";
 export type {
   GuardrailConfig,
+  CreateWalletConfig,
   BeniWallet,
   SpendResult,
   DailyUsage,

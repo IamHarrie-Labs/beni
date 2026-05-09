@@ -66,3 +66,13 @@ export type BeniSDKOptions = {
   network: BeniNetwork;
   blockfrostApiKey: string;
 };
+
+/**
+ * Config fields the caller supplies when creating a new agent wallet.
+ * The three derived fields (threadTokenPolicyId, lastWindowStart, windowSpent)
+ * are computed by createAgentWallet and must not be provided up-front.
+ */
+export type CreateWalletConfig = Omit<
+  GuardrailConfig,
+  "threadTokenPolicyId" | "lastWindowStart" | "windowSpent"
+>;

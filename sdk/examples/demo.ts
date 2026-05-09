@@ -11,10 +11,11 @@
  */
 
 import { makeLucid } from "../src/lucid-setup.js";
+import { createAgentWallet, agentSpend, freezeWallet } from "../src/index.js";
 import { validateSpend, computeNewWindowState } from "../src/validation.js";
 import { encodeDatum, decodeDatum } from "../src/datum.js";
-import { GuardrailViolationError, WalletFrozenError } from "../src/errors.js";
-import type { GuardrailConfig } from "../src/types.js";
+import { GuardrailViolationError } from "../src/errors.js";
+import type { CreateWalletConfig, GuardrailConfig } from "../src/types.js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -23,14 +24,21 @@ const NETWORK = "Preview" as const;
 
 // ── Demo wallet config ────────────────────────────────────────────────────────
 
+// CreateWalletConfig: the 3 derived fields (threadTokenPolicyId, lastWindowStart,
+// windowSpent) are omitted — createAgentWallet fills them in automatically.
+const walletConfig: CreateWalletConfig = {
+  perTxCapLovelace: 2_000_000n,   // 2 ADA per-tx cap
+  dailyCapLovelace: 10_000_000n,  // 10 ADA daily cap
+  allowedCredentialHashes: [],     // no whitelist — all sends are capped
+  ownerPkh: process.env.OWNER_PKH ?? "cafebabe00112233",
+  isFrozen: false,
+};
+
+// For offline scenario tests we need a full config with placeholder derived fields
 const demoConfig: GuardrailConfig = {
-  perTxCapLovelace: 2_000_000n,      // 2 ADA per-tx cap
-  dailyCapLovelace: 10_000_000n,     // 10 ADA daily cap
-  allowedCredentialHashes: [],        // no whitelist — all sends are capped
-  ownerPkh: "cafebabe00112233",
+  ...walletConfig,
   lastWindowStart: 0n,
   windowSpent: 0n,
-  isFrozen: false,
   threadTokenPolicyId: "deadbeef001122334455",
 };
 
@@ -176,9 +184,58 @@ async function demoGuardrails() {
   sep();
 }
 
+// ── On-chain demo (Preview testnet) ──────────────────────────────────────────
+// Only runs when BLOCKFROST_PREVIEW_KEY and AGENT_PRIVATE_KEY are set.
+
+async function demoOnChain() {
+  const blockfrostKey = process.env.BLOCKFROST_PREVIEW_KEY;
+  const agentKey = process.env.AGENT_PRIVATE_KEY;
+
+  if (!blockfrostKey || !agentKey) {
+    console.log("\n  ── On-chain demo skipped ────────────────────────────────");
+    console.log("  Set BLOCKFROST_PREVIEW_KEY + AGENT_PRIVATE_KEY to run");
+    console.log("  Faucet: https://docs.cardano.org/cardano-testnet/tools/faucet/");
+    return;
+  }
+
+  section("On-chain: Create agent wallet (Preview testnet)");
+  const lucid = await makeLucid({ network: "Preview", blockfrostApiKey: blockfrostKey });
+  lucid.selectWalletFromPrivateKey(agentKey);
+
+  try {
+    const wallet = await createAgentWallet(lucid, walletConfig, 5n);
+    ok(`Wallet deployed at: ${wallet.scriptAddress}`);
+    ok(`Thread token policy: ${wallet.config.threadTokenPolicyId}`);
+    info("Waiting for tx confirmation…");
+
+    section("On-chain: Valid spend within cap");
+    const destAddress = await lucid.wallet.address(); // send back to self for demo
+    const spend = await agentSpend(lucid, wallet, destAddress, 1_000_000n);
+    ok(`TX confirmed: ${spend.txHash}`);
+    ok(`Window spent: ${ada(spend.newConfig.windowSpent)}`);
+
+    section("On-chain: Freeze the wallet");
+    const freezeTx = await freezeWallet(lucid, wallet);
+    ok(`Freeze TX: ${freezeTx}`);
+    info("Wallet is now frozen — agent cannot spend until owner unfreezes");
+
+  } catch (err) {
+    if (err instanceof GuardrailViolationError) {
+      ok(`Guardrail fired as expected: ${err.message}`);
+    } else {
+      throw err;
+    }
+  }
+}
+
 // ── Run ───────────────────────────────────────────────────────────────────────
 
-demoGuardrails().catch((err) => {
+async function run() {
+  await demoGuardrails();
+  await demoOnChain();
+}
+
+run().catch((err) => {
   console.error("Demo failed:", err);
   process.exit(1);
 });
