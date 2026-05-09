@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "node --test dist/test/*.js",
+    "test": "npx tsx --test src/test/validation.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": ["cardano", "aiken", "ai-agent", "wallet", "guardrails"],

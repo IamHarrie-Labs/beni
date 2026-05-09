@@ -1,8 +1,7 @@
 use aiken/collection/list
 use aiken/interval.{Finite}
-use cardano/address.{Address}
+use cardano/address.{Address, ScriptCredential, VerificationKeyCredential}
 use cardano/assets.{lovelace_of, quantity_of}
-use cardano/credential.{ScriptCredential, VerificationKeyCredential}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction}
 
 /// Datum holds all guardrail rules and rolling window state for the agent wallet.

@@ -56,4 +56,4 @@ jobs:
 
       - name: Run SDK unit tests
         working-directory: sdk
-        run: node --test --experimental-strip-types src/test/validation.test.ts
+        run: npx tsx --test src/test/validation.test.ts
