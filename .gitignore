@@ -2,7 +2,6 @@ node_modules/
 dist/
 build/
 .aiken/
-plutus.json
 # Allow aiken.lock (reproducible builds) — only ignore npm/yarn lockfiles via node_modules pattern
 package-lock.json
 yarn.lock
