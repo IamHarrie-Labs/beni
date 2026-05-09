@@ -1,6 +1,6 @@
 use aiken/collection/list
 use aiken/interval.{Finite}
-use cardano/address.{Address, ScriptCredential, VerificationKeyCredential}
+use cardano/address.{Address, Script, VerificationKey}
 use cardano/assets.{lovelace_of, quantity_of}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction}
 
@@ -36,12 +36,12 @@ pub type WalletRedeemer {
   FreezeWallet
 }
 
-/// Extract the raw credential hash from an address (works for both
-/// verification key and script credentials).
+/// Extract the raw credential hash from an address.
+/// Works for both verification key and script payment credentials.
 fn credential_hash(addr: Address) -> ByteArray {
   when addr.payment_credential is {
-    VerificationKeyCredential(hash) -> hash
-    ScriptCredential(hash) -> hash
+    VerificationKey(hash) -> hash
+    Script(hash) -> hash
   }
 }
 
