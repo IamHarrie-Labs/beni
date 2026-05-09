@@ -1,0 +1,20 @@
+{
+  "name": "beni-app",
+  "version": "0.1.0",
+  "description": "Beni dashboard and AI chatbot",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve . -p 3000",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
+    "lucid-cardano": "^0.10.7",
+    "@blockfrost/blockfrost-js": "^5.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "license": "MIT"
+}

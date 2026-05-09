@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beni — Agent Wallet Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <h1 class="logo">Beni</h1>
+      <span class="tagline">AI Agent Wallet Guardrails on Cardano</span>
+      <div id="wallet-connect-area">
+        <button id="btn-connect-wallet" class="btn btn-outline">Connect Wallet</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <!-- Left column: dashboard -->
+    <section class="dashboard-col">
+
+      <!-- Wallet Status Card -->
+      <div class="card" id="card-status">
+        <div class="card-header">
+          <span class="card-title">Agent Wallet</span>
+          <span id="freeze-badge" class="badge badge-active">Active</span>
+        </div>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="stat-label">Balance</span>
+            <span class="stat-value" id="wallet-balance">— ADA</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Script Address</span>
+            <a class="stat-value addr-link" id="wallet-address" href="#" target="_blank">—</a>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button id="btn-freeze" class="btn btn-danger btn-sm">Emergency Freeze</button>
+          <button id="btn-refresh" class="btn btn-ghost btn-sm">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Daily Limit Gauge -->
+      <div class="card" id="card-daily">
+        <div class="card-header">
+          <span class="card-title">Daily Spending Limit</span>
+          <span class="stat-label" id="window-reset-label">Resets in —</span>
+        </div>
+        <div class="gauge-container">
+          <div class="gauge-bar">
+            <div class="gauge-fill" id="gauge-fill" style="width: 0%"></div>
+          </div>
+          <div class="gauge-labels">
+            <span id="gauge-spent">0 ADA spent</span>
+            <span id="gauge-cap">of 0 ADA</span>
+          </div>
+        </div>
+        <div class="guardrail-row">
+          <span class="guardrail-label">Per-tx cap</span>
+          <span class="guardrail-value" id="per-tx-cap">— ADA</span>
+        </div>
+      </div>
+
+      <!-- Pending Approvals -->
+      <div class="card" id="card-approvals">
+        <div class="card-header">
+          <span class="card-title">Pending Approvals</span>
+          <span class="badge" id="approvals-count">0</span>
+        </div>
+        <div id="approvals-list" class="approvals-list">
+          <p class="empty-state">No pending approvals</p>
+        </div>
+      </div>
+
+      <!-- Transaction History -->
+      <div class="card" id="card-history">
+        <div class="card-header">
+          <span class="card-title">Transaction History</span>
+        </div>
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Amount</th>
+              <th>Destination</th>
+              <th>TX</th>
+            </tr>
+          </thead>
+          <tbody id="tx-history-body">
+            <tr><td colspan="4" class="empty-state">No transactions yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right column: chatbot -->
+    <section class="chat-col">
+      <div class="card chat-card">
+        <div class="card-header">
+          <span class="card-title">Beni AI Assistant</span>
+          <span class="powered-by">Powered by Claude</span>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-msg assistant">
+            <span class="chat-bubble">
+              Hello! I'm Beni, your AI wallet guardian. I can check your balance,
+              spending limits, and execute guarded transactions. What would you like to do?
+            </span>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input
+            type="text"
+            id="chat-input"
+            class="chat-input"
+            placeholder="Ask me anything about your wallet..."
+            autocomplete="off"
+          />
+          <button id="btn-send" class="btn btn-primary">Send</button>
+        </div>
+        <div class="chat-suggestions">
+          <button class="suggestion" data-msg="What's my balance?">Balance?</button>
+          <button class="suggestion" data-msg="How much have I spent today?">Daily usage?</button>
+          <button class="suggestion" data-msg="Show my last 5 transactions">History</button>
+          <button class="suggestion" data-msg="What are my spending limits?">Limits?</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="src/dashboard.js"></script>
+</body>
+</html>

@@ -2,15 +2,30 @@
   "name": "beni-sdk",
   "version": "0.1.0",
   "description": "AI agent wallet guardrails on Cardano",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
-    "test": "node --test"
+    "dev": "tsc --watch",
+    "test": "node --test dist/test/*.js",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["cardano", "aiken", "ai-agent", "wallet", "guardrails"],
   "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
+    "@blockfrost/blockfrost-js": "^5.4.0",
+    "lucid-cardano": "^0.10.7"
+  },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.4.0"
   }
 }
