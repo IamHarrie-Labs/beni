@@ -548,6 +548,8 @@ function TransactionsTable() {
 }
 
 /* ================= ASSISTANT PANEL ================= */
+const CHAT_API = "http://localhost:3001/api/chat";
+
 function AssistantPanel() {
   const [messages, setMessages] = useStateD([
     { who: "beni", text: "Hi. Atlas-trader is running clean. Daily spend at 73%. Three transactions are pending approval — want me to walk through them?" },
@@ -555,11 +557,44 @@ function AssistantPanel() {
     { who: "beni", text: "Yield-router tried a 2,400 ADA swap to addr1...x9aa. It exceeded the daily cap (2,500 ADA, 1,830 used). I rejected at block 11,402,308." },
   ]);
   const [input, setInput] = useStateD("");
+  const [loading, setLoading] = useStateD(false);
+  const bottomRef = React.useRef(null);
 
-  function send() {
-    if (!input.trim()) return;
-    setMessages([...messages, { who: "user", text: input }, { who: "beni", text: "That address has never been seen before — I'd suggest adding it to the whitelist before re-running." }]);
+  React.useEffect(() => {
+    if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function send() {
+    const text = input.trim();
+    if (!text || loading) return;
     setInput("");
+
+    const history = [...messages, { who: "user", text }];
+    setMessages(history);
+    setLoading(true);
+
+    try {
+      const res = await fetch(CHAT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: history.map(m => ({
+            role: m.who === "user" ? "user" : "assistant",
+            content: m.text,
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      setMessages(prev => [...prev, { who: "beni", text: data.text }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        who: "beni",
+        text: "⚠ Chat server not reachable. Open a terminal and run: cd sdk && npm run chat",
+      }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -575,9 +610,9 @@ function AssistantPanel() {
         </div>
         <div style={{ flex: 1 }}>
           <div className="display" style={{ fontSize: 18 }}>Beni</div>
-          <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", letterSpacing: "0.1em" }}>POLICY-AWARE · READS THE CHAIN</div>
+          <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", letterSpacing: "0.1em" }}>POLICY-AWARE · CLAUDE HAIKU</div>
         </div>
-        <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--ok)", border: "1.5px solid var(--ink)" }}/>
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: loading ? "var(--warn)" : "var(--ok)", border: "1.5px solid var(--ink)" }}/>
       </div>
 
       <div style={{ flex: 1, padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -589,38 +624,49 @@ function AssistantPanel() {
           )
         ))}
 
+        {loading && (
+          <div style={{ alignSelf: "flex-start", padding: "12px 14px", background: "var(--paper)", border: "1.5px solid var(--ink)", fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", letterSpacing: "0.06em" }}>
+            thinking…
+          </div>
+        )}
+
         <div style={{ marginTop: 10, padding: 14, border: "1.5px solid var(--accent)", background: "var(--paper)" }}>
           <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 10 }}>Suggested actions</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <SuggestedAction t="Raise daily cap to ₳ 3,000?"/>
-            <SuggestedAction t="Whitelist addr1...u2vq"/>
-            <SuggestedAction t="Snooze yield-router for 1h"/>
+            {["Raise daily cap to ₳ 3,000?", "Whitelist addr1...u2vq", "Snooze yield-router for 1h"].map(t => (
+              <SuggestedAction key={t} t={t} onClick={() => { setInput(t); }}/>
+            ))}
           </div>
         </div>
+
+        <div ref={bottomRef}/>
       </div>
 
       <div style={{ padding: 14, borderTop: "1.5px solid var(--ink)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 6px 0 12px", border: "1.5px solid var(--ink)", background: "var(--paper)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 6px 0 12px", border: "1.5px solid var(--ink)", background: "var(--paper)", opacity: loading ? 0.6 : 1 }}>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
             placeholder="Ask Beni…"
+            disabled={loading}
             style={{ flex: 1, height: 36, background: "transparent", border: 0, outline: 0, color: "var(--ink)", font: "15px var(--serif)" }}
           />
-          <button className="ink-btn" onClick={send} style={{ height: 28, padding: "0 10px", fontSize: 12, boxShadow: "2px 2px 0 var(--ink)" }}><Icon.send size={12} color="var(--paper)"/></button>
+          <button className="ink-btn" onClick={send} disabled={loading} style={{ height: 28, padding: "0 10px", fontSize: 12, boxShadow: "2px 2px 0 var(--ink)", opacity: loading ? 0.5 : 1 }}>
+            <Icon.send size={12} color="var(--paper)"/>
+          </button>
         </div>
         <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", marginTop: 10, textAlign: "center", letterSpacing: "0.1em" }}>
-          ⌘K TO FOCUS · GATED BY RBAC
+          CLAUDE HAIKU · GATED BY RBAC
         </div>
       </div>
     </aside>
   );
 }
 
-function SuggestedAction({ t }) {
+function SuggestedAction({ t, onClick }) {
   return (
-    <button style={{
+    <button onClick={onClick} style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "8px 10px", background: "var(--paper-2)", border: "1.5px solid var(--ink)",
       color: "var(--ink)", fontFamily: "var(--serif)", fontSize: 13, cursor: "pointer", textAlign: "left",

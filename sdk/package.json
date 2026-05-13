@@ -15,7 +15,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "npx tsx --test src/test/validation.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "chat": "npx tsx src/chat-server.ts"
   },
   "keywords": ["cardano", "aiken", "ai-agent", "wallet", "guardrails"],
   "license": "MIT",
