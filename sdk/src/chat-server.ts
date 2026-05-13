@@ -83,7 +83,7 @@ const server = http.createServer(async (req, res) => {
         };
 
         const response = await client.messages.create({
-          model: "claude-3-5-haiku-20241022",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 300,          // keep costs low — enough for a crisp reply
           system: SYSTEM,
           messages,
@@ -112,5 +112,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`[Beni] Chat server ready → http://localhost:${PORT}/api/chat`);
-  console.log(`[Beni] Model: claude-3-5-haiku-20241022 · max_tokens: 300`);
+  console.log(`[Beni] Model: claude-haiku-4-5-20251001 · max_tokens: 300`);
 });

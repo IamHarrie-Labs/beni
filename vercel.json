@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "app",
+  "rewrites": [
+    { "source": "/api/chat", "destination": "/api/chat" }
+  ]
+}
