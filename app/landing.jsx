@@ -1,0 +1,563 @@
+/* global React */
+const { useState: useStateL, useEffect: useEffectL } = React;
+
+/* =================================================================== */
+/*  HERO                                                                */
+/* =================================================================== */
+function Hero({ setPage }) {
+  return (
+    <section style={{ paddingTop: 60, paddingBottom: 40, position: "relative", overflow: "hidden" }}>
+      <div className="wide" style={{ position: "relative" }}>
+        {/* Top label row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
+          <div className="smallcaps" style={{ color: "var(--accent)" }}>
+            Beni — Issue 04 — May 2026
+          </div>
+          <div className="smallcaps" style={{ color: "var(--ink-3)" }}>
+            A safety layer for autonomous AI wallets
+          </div>
+        </div>
+
+        {/* Massive headline */}
+        <div style={{ position: "relative", marginBottom: 24 }}>
+          <h1 className="display" style={{
+            fontSize: "clamp(80px, 14vw, 220px)",
+            lineHeight: 0.86,
+            letterSpacing: "-0.025em",
+            margin: 0,
+          }}>
+            Software<br/>
+            should<br/>
+            know <span style={{ position: "relative", display: "inline-block" }}>
+              when
+              <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.18em" }}>
+                <ScribbleUnder width="100%" thick={6} color="var(--accent)"/>
+              </span>
+            </span>
+            <br/>
+            <span style={{ color: "var(--accent)" }}>to stop.</span>
+          </h1>
+
+          {/* Floating doodles */}
+          <div style={{ position: "absolute", top: 60, right: -10, transform: "rotate(8deg)" }}>
+            <Star size={36} color="var(--accent)"/>
+          </div>
+          <div style={{ position: "absolute", top: 220, right: 80, transform: "rotate(-6deg)", display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="hand" style={{ fontSize: 30, color: "var(--ink-2)" }}>← the whole product, in five words</span>
+          </div>
+          <div style={{ position: "absolute", bottom: -20, left: -20, transform: "rotate(-12deg)" }}>
+            <Asterisk size={48} color="var(--accent)"/>
+          </div>
+        </div>
+
+        {/* Sub + CTAs row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 60, alignItems: "end", marginTop: 56 }}>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 22, lineHeight: 1.45, margin: 0, maxWidth: 640, color: "var(--ink-2)" }}>
+            AI agents are about to be in charge of your money. Beni is the
+            <em style={{ color: "var(--ink)", fontStyle: "italic" }}> hard physical edge </em>
+            of what they're allowed to do — written as Cardano smart contracts,
+            not as a polite suggestion.
+          </p>
+          <div style={{ display: "flex", gap: 14, justifyContent: "end", flexWrap: "wrap" }}>
+            <button className="ink-btn" onClick={() => setPage("dashboard")}>
+              Open the dashboard <Icon.arrow size={18} color="var(--paper)"/>
+            </button>
+            <button className="ink-btn ghost" onClick={() => setPage("docs")}>
+              Read the docs
+            </button>
+          </div>
+        </div>
+
+        {/* Diagrammatic flow ribbon */}
+        <HeroDiagram/>
+      </div>
+    </section>
+  );
+}
+
+function HeroDiagram() {
+  return (
+    <div style={{ marginTop: 80, position: "relative" }}>
+      <div style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", padding: "44px 0", display: "grid", gridTemplateColumns: "1fr auto 1fr auto 1fr", gap: 24, alignItems: "center" }}>
+        {/* AI agent */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <DiagramTile label="THE AGENT" hint="autonomous, fast, fallible">
+            <Icon.ai size={60} sw={1.6}/>
+          </DiagramTile>
+          <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>spends without asking</span>
+        </div>
+        <div style={{ transform: "translateY(-30px)" }}>
+          <HandArrow w={100} h={40} dir="right"/>
+        </div>
+        {/* Beni shield */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <DiagramTile primary label="BENI" hint="rules, on chain">
+            <BeniMark size={68} color="var(--paper)"/>
+          </DiagramTile>
+          <span className="hand" style={{ fontSize: 24, color: "var(--accent)" }}>checks every move</span>
+        </div>
+        <div style={{ transform: "translateY(-30px)" }}>
+          <HandArrow w={100} h={40} dir="right"/>
+        </div>
+        {/* Cardano */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <DiagramTile label="CARDANO" hint="settles or doesn't">
+            <Hexagon/>
+          </DiagramTile>
+          <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>or refuses to settle</span>
+        </div>
+      </div>
+      {/* Caption row */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.16em", textTransform: "uppercase" }}>
+        <span>Fig. 01 — the three actors</span>
+        <span>nothing else stands between an agent and your wallet.</span>
+      </div>
+    </div>
+  );
+}
+
+function DiagramTile({ children, label, hint, primary }) {
+  return (
+    <div style={{
+      width: 200, height: 140,
+      border: "1.5px solid var(--ink)",
+      background: primary ? "var(--ink)" : "var(--paper)",
+      color: primary ? "var(--paper)" : "var(--ink)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+      position: "relative",
+      boxShadow: "4px 4px 0 0 var(--ink)",
+    }}>
+      <div style={{ flex: 1, display: "grid", placeItems: "center" }}>{children}</div>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 12px", borderTop: "1.5px solid " + (primary ? "var(--paper)" : "var(--ink)"), fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.16em", display: "flex", justifyContent: "space-between" }}>
+        <span>{label}</span>
+        <span style={{ opacity: 0.65, textTransform: "lowercase", letterSpacing: 0 }}>{hint}</span>
+      </div>
+    </div>
+  );
+}
+
+function Hexagon() {
+  return (
+    <svg viewBox="0 0 64 64" width={60} height={60}>
+      <g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M32 6 L54 18 V46 L32 58 L10 46 V18 Z"/>
+        <path d="M32 18 L44 25 V41 L32 48 L20 41 V25 Z"/>
+        <circle cx="32" cy="33" r="3"/>
+      </g>
+    </svg>
+  );
+}
+
+/* =================================================================== */
+/*  MARQUEE                                                             */
+/* =================================================================== */
+function Marquee() {
+  const items = ["Cardano Foundation", "IOG", "MeshJS", "Aiken", "Blockfrost", "NMKR", "Genius Yield", "SundaeSwap", "Maestro", "Liqwid"];
+  return (
+    <section style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", background: "var(--paper-2)", padding: "22px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+        <span className="smallcaps" style={{ paddingLeft: 32, whiteSpace: "nowrap" }}>Trusted by builders at →</span>
+        <div style={{ flex: 1, overflow: "hidden", maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
+          <div style={{ display: "flex", gap: 56, animation: "scroll-x 50s linear infinite", width: "max-content" }}>
+            {[...items, ...items].map((x, i) => (
+              <span key={i} className="display" style={{ fontSize: 28, color: "var(--ink-2)" }}>{x}<span style={{ color: "var(--accent)" }}>.</span></span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =================================================================== */
+/*  PROBLEM                                                             */
+/* =================================================================== */
+function Problem() {
+  return (
+    <section style={{ padding: "140px 0 100px" }}>
+      <div className="wide">
+        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.4fr", gap: 80, alignItems: "start" }}>
+          <div style={{ position: "sticky", top: 100 }}>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One — The mess</span>
+            <h2 className="display" style={{ fontSize: 80, lineHeight: 0.94, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
+              AI agents<br/>
+              can move money.<br/>
+              <span style={{ color: "var(--ink-4)", fontStyle: "italic" }}>nothing</span><br/>
+              can stop them.
+            </h2>
+            <p style={{ fontSize: 19, lineHeight: 1.5, maxWidth: 480, color: "var(--ink-2)" }}>
+              Autonomous agents already trade, pay, and route funds — usually unsupervised.
+              When the model hallucinates, or a prompt gets exploited, or a key leaks,
+              there is no enforced ceiling between the agent and your treasury.
+            </p>
+            <div style={{ marginTop: 28 }}>
+              <span className="hand" style={{ fontSize: 32, color: "var(--accent)" }}>and "trust me" is not a security model.</span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            <StatPanel n="$2.3B" lead="lost to wallet drains in 2025" tail="DeFi Llama / Chainalysis" rot={-0.4}/>
+            <StatPanel n="73%" lead={<>of agent operators report a <em>runaway-spend event</em></>} tail="Beni operator survey · n=412" rot={0.6}/>
+            <StatPanel n="0" lead="production-grade on-chain enforcement layers for agentic finance" tail="until us" accent rot={-0.3}/>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatPanel({ n, lead, tail, accent, rot = 0 }) {
+  return (
+    <div style={{
+      borderTop: "1.5px solid var(--ink)",
+      padding: "40px 0",
+      display: "grid",
+      gridTemplateColumns: "auto 1fr",
+      gap: 40,
+      alignItems: "baseline",
+    }}>
+      <div className="display" style={{
+        fontSize: 140, lineHeight: 0.9, letterSpacing: "-0.03em",
+        color: accent ? "var(--accent)" : "var(--ink)",
+        transform: `rotate(${rot}deg)`,
+      }}>{n}</div>
+      <div>
+        <div style={{ fontSize: 26, lineHeight: 1.25, color: "var(--ink)" }}>{lead}</div>
+        <div className="smallcaps" style={{ marginTop: 14, color: "var(--ink-3)" }}>— {tail}</div>
+      </div>
+    </div>
+  );
+}
+
+/* =================================================================== */
+/*  HOW IT WORKS                                                        */
+/* =================================================================== */
+function HowItWorks() {
+  return (
+    <section style={{ padding: "100px 0", background: "var(--ink)", color: "var(--paper)", borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)" }}>
+      <div className="wide">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 60 }}>
+          <div>
+            <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two — How</span>
+            <h2 className="display" style={{ fontSize: 96, lineHeight: 0.92, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
+              Every transaction<br/>passes through Beni.
+            </h2>
+          </div>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.5, maxWidth: 440, color: "var(--paper)" }}>
+            Your agent signs as usual. <em>Our validator</em> looks at the
+            transaction, checks it against your rules, and lets it through —
+            or doesn't.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, background: "var(--paper)", border: "1.5px solid var(--paper)" }}>
+          {[
+            { n: "01", t: "Agent builds the transaction", d: "Beni's SDK wraps your agent's wallet provider. The agent's code does not change." },
+            { n: "02", t: "Rules evaluate on-chain", d: "An Aiken validator checks caps, whitelists, daily limits, and the thread-token signature." },
+            { n: "03", t: "Humans gate the edge cases", d: "Anything above your threshold pauses for review — dashboard, webhook, or signed approval." },
+            { n: "04", t: "Settle, or revert", d: "Cardano either accepts the whole thing, or rejects it. No half-baked state to clean up." },
+          ].map(s => (
+            <div key={s.n} style={{ background: "var(--ink)", padding: "32px 28px", display: "flex", flexDirection: "column", gap: 16, minHeight: 280 }}>
+              <div className="display" style={{ fontSize: 56, color: "var(--accent-3)", lineHeight: 1 }}>{s.n}</div>
+              <div style={{ fontFamily: "var(--display)", fontSize: 26, lineHeight: 1.1, marginTop: 8 }}>{s.t}</div>
+              <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--paper-3)", margin: 0 }}>{s.d}</p>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 32, display: "flex", justifyContent: "center", alignItems: "center", gap: 14 }}>
+          <span className="hand" style={{ fontSize: 32, color: "var(--accent-3)" }}>and that's basically the whole thing.</span>
+          <HandArrow dir="right" color="var(--accent-3)" w={80}/>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =================================================================== */
+/*  THE RULES (features)                                                */
+/* =================================================================== */
+function Rules() {
+  const items = [
+    { n: "I.", t: "A ceiling on every spend", d: "Set the maximum size of any single transaction. The agent physically cannot exceed it." , doodle: "cap" },
+    { n: "II.", t: "A rolling daily budget", d: "A smooth, time-windowed allowance. No end-of-day cliff, no off-chain timer to trust.", doodle: "clock" },
+    { n: "III.", t: "Trusted addresses bypass review", d: "Pre-approve who the agent can pay freely. Everything else stops at the gate.", doodle: "list" },
+    { n: "IV.", t: "Human-in-the-loop approvals", d: "Anything above your threshold pauses for your signature. Approve in two seconds.", doodle: "hand" },
+    { n: "V.", t: "Emergency freeze", d: "One click. The thread token gets revoked. Every outbound transaction halts within a block.", doodle: "freeze" },
+    { n: "VI.", t: "Live monitoring", d: "Watch every decision your validator makes, in real time. Subscribe to a webhook, or just look.", doodle: "eye" },
+    { n: "VII.", t: "A chatbot that knows your rules", d: "Ask Beni — in English — why something was approved, blocked, or queued. It reads the chain.", doodle: "chat" },
+    { n: "VIII.", t: "Thread-token integrity", d: "A non-fungible thread token anchors every policy update. Tampering is provably detectable.", doodle: "shield" },
+  ];
+  return (
+    <section style={{ padding: "140px 0 100px" }}>
+      <div className="wide">
+        <div style={{ marginBottom: 80, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 60, alignItems: "end" }}>
+          <h2 className="display" style={{ fontSize: 120, lineHeight: 0.9, margin: 0, letterSpacing: "-0.025em" }}>
+            Eight rules.<br/>
+            <span style={{ color: "var(--accent)" }}>Endless</span> combinations.
+          </h2>
+          <p style={{ fontSize: 19, lineHeight: 1.5, color: "var(--ink-2)" }}>
+            A small kit of primitives. Compose them into any policy — from
+            a one-bot trading account to a multi-team treasury vault.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, borderTop: "1.5px solid var(--ink)", borderLeft: "1.5px solid var(--ink)" }}>
+          {items.map((x, i) => (
+            <div key={i} style={{
+              borderRight: "1.5px solid var(--ink)",
+              borderBottom: "1.5px solid var(--ink)",
+              padding: 28,
+              minHeight: 260,
+              display: "flex", flexDirection: "column", gap: 14,
+              background: "var(--paper)",
+              position: "relative",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                <div className="display" style={{ fontSize: 48, color: "var(--accent)", lineHeight: 1, letterSpacing: "-0.02em" }}>{x.n}</div>
+                <RuleDoodle kind={x.doodle}/>
+              </div>
+              <div className="display" style={{ fontSize: 24, lineHeight: 1.1, marginTop: 8 }}>{x.t}</div>
+              <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>{x.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RuleDoodle({ kind }) {
+  const map = {
+    cap: <Icon.shield size={36} sw={1.6}/>,
+    clock: <svg viewBox="0 0 24 24" width={36} height={36}><g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.6" fill="none" strokeLinecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 8 V13 L16 16"/><line x1="9" y1="3" x2="15" y2="3"/></g></svg>,
+    list: <Icon.list size={36} sw={1.6}/>,
+    hand: <svg viewBox="0 0 24 24" width={36} height={36}><g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11 V5 C 9 4, 10 3, 11 3 C 12 3, 13 4, 13 5 V11 V8 C 13 7, 14 6, 15 6 C 16 6, 17 7, 17 8 V13 C 17 17, 14 21, 10 21 C 6 21, 5 17, 5 14 V11 C 5 10, 6 9, 7 9 C 8 9, 9 10, 9 11 Z"/></g></svg>,
+    freeze: <Icon.freeze size={36} sw={1.6}/>,
+    eye: <Icon.eye size={36} sw={1.6}/>,
+    chat: <Icon.chat size={36} sw={1.6}/>,
+    shield: <Icon.shield size={36} sw={1.6}/>,
+  };
+  return <span style={{ color: "var(--ink-3)" }}>{map[kind]}</span>;
+}
+
+/* =================================================================== */
+/*  SDK SECTION                                                         */
+/* =================================================================== */
+function SdkSection({ setPage }) {
+  return (
+    <section style={{ padding: "120px 0", background: "var(--paper-2)", borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)" }}>
+      <div className="wide">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 80, alignItems: "center" }}>
+          <div>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three — For builders</span>
+            <h2 className="display" style={{ fontSize: 88, lineHeight: 0.92, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
+              Three lines.<br/>
+              That's the<br/>
+              whole integration.
+            </h2>
+            <p style={{ fontSize: 19, lineHeight: 1.5, color: "var(--ink-2)", maxWidth: 460, marginBottom: 28 }}>
+              Wrap any Cardano wallet provider with a list of rules. Send transactions
+              like normal. The validator does the rest — on chain, with no off-chain
+              service you have to trust or pay.
+            </p>
+            <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
+              <button className="ink-btn" onClick={() => setPage("docs")}>Open the SDK docs <Icon.arrow size={16} color="var(--paper)"/></button>
+              <button className="ink-btn ghost"><Icon.github size={16}/> Star on GitHub</button>
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <span className="hand" style={{ fontSize: 28, color: "var(--accent)" }}>also available in</span>
+              <span className="stamp">AIKEN</span>
+              <span className="stamp">TYPESCRIPT</span>
+              <span className="stamp">REST + WS</span>
+            </div>
+          </div>
+          <CodeCard/>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CodeCard() {
+  return (
+    <div className="paper-card askew-1" style={{ padding: 0, boxShadow: "8px 8px 0 0 var(--ink)" }}>
+      <div style={{ padding: "14px 22px", borderBottom: "1.5px solid var(--ink)", display: "flex", alignItems: "center", gap: 12, background: "var(--paper-3)" }}>
+        <span className="mono" style={{ fontSize: 12, letterSpacing: "0.1em" }}>AGENT.TS</span>
+        <span style={{ flex: 1 }}/>
+        <span className="stamp">COPY</span>
+      </div>
+      <pre style={{
+        margin: 0, padding: "28px 32px", overflow: "auto", background: "var(--paper)",
+        fontFamily: "var(--mono)", fontSize: 14, lineHeight: 1.75, color: "var(--ink)",
+      }}>
+<code>{`// Wrap any wallet — the agent doesn't change.
+`}<span style={{ color: "var(--accent-2)" }}>import</span>{` { Beni, rule } `}<span style={{ color: "var(--accent-2)" }}>from</span>{` `}<span style={{ color: "var(--accent)" }}>"@beni/sdk"</span>{`
+`}<span style={{ color: "var(--accent-2)" }}>import</span>{` { Lucid } `}<span style={{ color: "var(--accent-2)" }}>from</span>{` `}<span style={{ color: "var(--accent)" }}>"lucid-cardano"</span>{`
+
+`}<span style={{ color: "var(--accent-2)" }}>const</span>{` wallet = `}<span style={{ color: "var(--accent-2)" }}>await</span>{` Lucid.new(provider, `}<span style={{ color: "var(--accent)" }}>"Mainnet"</span>{`)
+
+`}<span style={{ color: "var(--accent-2)" }}>const</span>{` guarded = `}<span style={{ color: "var(--accent-2)" }}>await</span>{` Beni.wrap(wallet, {
+  agentId: `}<span style={{ color: "var(--accent)" }}>"atlas-trader-v2"</span>{`,
+  rules: [
+    rule.perTxCap({ lovelace: `}<span style={{ color: "var(--accent-2)" }}>500_000_000n</span>{` }),
+    rule.dailyCap({ lovelace: `}<span style={{ color: "var(--accent-2)" }}>2_500_000_000n</span>{` }),
+    rule.whitelist([`}<span style={{ color: "var(--accent)" }}>"addr1...m7p2"</span>{`]),
+    rule.requireApproval({ above: `}<span style={{ color: "var(--accent-2)" }}>250_000_000n</span>{` }),
+  ],
+})
+
+// Use it like any wallet. Rules enforce themselves.
+`}<span style={{ color: "var(--accent-2)" }}>await</span>{` guarded.send({ to, lovelace: `}<span style={{ color: "var(--accent-2)" }}>120_000_000n</span>{` })`}</code>
+      </pre>
+    </div>
+  );
+}
+
+/* =================================================================== */
+/*  TESTIMONIAL                                                         */
+/* =================================================================== */
+function Testimonial() {
+  return (
+    <section style={{ padding: "120px 0", position: "relative" }}>
+      <div className="wide">
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 60, alignItems: "center" }}>
+          <div className="display" style={{ fontSize: 240, color: "var(--accent)", lineHeight: 0.6 }}>“</div>
+          <div>
+            <p className="display" style={{ fontSize: 56, lineHeight: 1.05, letterSpacing: "-0.02em", margin: 0 }}>
+              We ran an agent for six months without rails and lost sleep every night.
+              With Beni the agent does what it's good at, and the chain{" "}
+              <span style={{ position: "relative", display: "inline-block", color: "var(--accent)" }}>
+                physically can't
+                <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.15em" }}>
+                  <ScribbleUnder thick={4} color="var(--accent)"/>
+                </span>
+              </span>{" "}
+              do anything else.
+            </p>
+            <div style={{ marginTop: 36, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--paper-3)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontFamily: "var(--display)", fontSize: 24 }}>LO</div>
+              <div>
+                <div style={{ fontFamily: "var(--display)", fontSize: 22 }}>Lena Okafor</div>
+                <div className="smallcaps" style={{ color: "var(--ink-3)" }}>CTO · Tessera Capital</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =================================================================== */
+/*  FAQ                                                                 */
+/* =================================================================== */
+function FAQ() {
+  const items = [
+    { q: "Where do the rules actually run?", a: "Inside an Aiken validator on Cardano. Beni's off-chain services help you author and observe — but enforcement is on-chain. No off-chain dependency can override a deployed cap." },
+    { q: "Does Beni hold my funds?", a: "No. Beni never takes custody. Your wallet still signs every transaction; the validator simply refuses to settle anything that violates your rules." },
+    { q: "What happens during an emergency freeze?", a: "A single signed action burns the agent's spend permission until you re-issue it. The freeze takes one block to finalize and cannot be bypassed off-chain." },
+    { q: "Which agents and frameworks are supported?", a: "Anything that constructs Cardano transactions: LangChain, AutoGen, custom Python or TypeScript bots, internal trading services. Beni wraps the wallet — not the agent." },
+    { q: "How is this different from a multisig?", a: "Multisigs gate signatures. Beni gates behavior. Per-tx caps, rolling budgets, whitelists, and approval thresholds are policies a multisig cannot express." },
+    { q: "Is the contract audited?", a: "Yes — full audit by Tweag Labs (Q1 2026). Report and reproduction artifacts are public on GitHub." },
+  ];
+  const [open, setOpen] = useStateL(0);
+  return (
+    <section style={{ padding: "120px 0", borderTop: "1.5px solid var(--ink)" }}>
+      <div className="wide">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 80 }}>
+          <div style={{ position: "sticky", top: 100, alignSelf: "start" }}>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four — Q&amp;A</span>
+            <h2 className="display" style={{ fontSize: 88, lineHeight: 0.92, margin: "16px 0 28px" }}>
+              Questions,<br/>answered.
+            </h2>
+            <p style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 360 }}>
+              For everything else the docs go deeper. Or write us a letter.
+            </p>
+            <span className="hand" style={{ fontSize: 28, color: "var(--accent)", display: "inline-block", marginTop: 18 }}>hello@beni.run</span>
+          </div>
+          <div style={{ borderTop: "1.5px solid var(--ink)" }}>
+            {items.map((it, i) => (
+              <div key={i} style={{ borderBottom: "1.5px solid var(--ink)" }}>
+                <button onClick={() => setOpen(open === i ? -1 : i)} style={{
+                  width: "100%", background: "transparent", border: 0, padding: "26px 0",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  color: "var(--ink)", fontFamily: "var(--display)", fontSize: 28, lineHeight: 1.1,
+                  cursor: "pointer", textAlign: "left", letterSpacing: "-0.015em",
+                }}>
+                  <span style={{ display: "flex", gap: 18, alignItems: "baseline" }}>
+                    <span style={{ color: "var(--ink-4)", fontSize: 20 }}>{String(i + 1).padStart(2, "0")}.</span>
+                    {it.q}
+                  </span>
+                  <span style={{ marginLeft: 24, fontSize: 32, color: "var(--accent)", transform: open === i ? "rotate(45deg)" : "none", transition: "transform .2s" }}>+</span>
+                </button>
+                {open === i && (
+                  <div style={{ paddingBottom: 28, paddingLeft: 56, fontSize: 19, lineHeight: 1.55, color: "var(--ink-2)" }}>{it.a}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =================================================================== */
+/*  FINAL CTA — giant mural                                             */
+/* =================================================================== */
+function FinalCTA({ setPage }) {
+  return (
+    <section style={{ padding: "60px 0 100px" }}>
+      <div className="wide">
+        <div style={{ background: "var(--ink)", color: "var(--paper)", padding: "100px 60px", position: "relative", overflow: "hidden", boxShadow: "10px 10px 0 0 var(--accent)" }}>
+          <div style={{ position: "absolute", top: 40, right: 60, transform: "rotate(8deg)" }}>
+            <Star size={48} color="var(--accent-3)"/>
+          </div>
+          <div style={{ position: "absolute", bottom: 40, left: 60, transform: "rotate(-12deg)" }}>
+            <Asterisk size={56} color="var(--accent)"/>
+          </div>
+
+          <div className="smallcaps" style={{ color: "var(--accent-3)", marginBottom: 24 }}>Last page</div>
+          <h2 className="display" style={{ fontSize: "clamp(80px, 12vw, 180px)", lineHeight: 0.86, margin: 0, letterSpacing: "-0.03em", color: "var(--paper)" }}>
+            Give your<br/>
+            agents <span style={{ color: "var(--accent)" }}>a leash</span>.
+          </h2>
+          <p style={{ fontSize: 22, lineHeight: 1.5, maxWidth: 580, marginTop: 32, color: "var(--paper-3)" }}>
+            Free during the developer preview. Mainnet contracts.
+            No off-chain custody. <span className="hand" style={{ fontSize: 32, color: "var(--accent-3)" }}>(seriously, none.)</span>
+          </p>
+          <div style={{ marginTop: 40, display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <button className="ink-btn accent" onClick={() => setPage("dashboard")}>
+              Open the dashboard <Icon.arrow size={18} color="var(--paper)"/>
+            </button>
+            <button className="ink-btn" style={{ background: "transparent", color: "var(--paper)", borderColor: "var(--paper)", boxShadow: "3px 3px 0 var(--accent)" }} onClick={() => setPage("docs")}>
+              Book a 20-min demo
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* =================================================================== */
+/*  ROOT                                                                */
+/* =================================================================== */
+function Landing({ setPage }) {
+  return (
+    <div className="fade-in" data-screen-label="01 Landing">
+      <Hero setPage={setPage}/>
+      <Marquee/>
+      <Problem/>
+      <HowItWorks/>
+      <Rules/>
+      <SdkSection setPage={setPage}/>
+      <Testimonial/>
+      <FAQ/>
+      <FinalCTA setPage={setPage}/>
+    </div>
+  );
+}
+
+Object.assign(window, { Landing });
