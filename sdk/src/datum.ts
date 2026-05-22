@@ -1,4 +1,4 @@
-import { Data } from "lucid-cardano";
+import { Data } from "@lucid-evolution/lucid";
 import type { GuardrailConfig } from "./types.js";
 
 // Field order MUST match the Aiken WalletDatum declaration order exactly.

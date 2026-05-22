@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import type { Lucid } from "lucid-cardano";
-import { Constr, Data } from "lucid-cardano";
+import type { LucidEvolution as Lucid } from "@lucid-evolution/lucid";
+import { Constr, Data } from "@lucid-evolution/lucid";
 import type { BeniWallet } from "./types.js";
 import { makeScript } from "./index-internal.js";
 import { NoScriptUTxOError } from "./errors.js";
@@ -121,23 +121,23 @@ export async function approveSpend(
 
   const OwnerActionRedeemer = Data.to(new Constr(1, []));
 
-  const tx = await lucid
+  const txSignBuilder = await lucid
     .newTx()
     .collectFrom([utxo], OwnerActionRedeemer)
-    .attachSpendingValidator(script)
-    .payToContract(
+    .attach.SpendingValidator(script)
+    .pay.ToContract(
       wallet.scriptAddress,
-      { inline: newDatumCbor },
+      { kind: "inline", value: newDatumCbor },
       { lovelace: continuingLovelace, [threadTokenUnit]: 1n },
     )
-    .payToAddress(pending.toAddress, { lovelace: pending.lovelace })
+    .pay.ToAddress(pending.toAddress, { lovelace: pending.lovelace })
     .addSignerKey(wallet.config.ownerPkh)
     .validFrom(Date.now() - 60_000)
     .validTo(Date.now() + 300_000)
     .complete();
 
-  const signed = await tx.sign().complete();
-  const txHash = await signed.submit();
+  const txSigned = await txSignBuilder.sign.withWallet().complete();
+  const txHash = await txSigned.submit();
 
   // Mark approved in queue
   pending.status = "approved";

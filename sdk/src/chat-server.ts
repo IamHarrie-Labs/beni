@@ -115,7 +115,7 @@ const PORT = 3001;
 const server = http.createServer(async (req, res) => {
   // CORS — allow the static app on any local port to call us
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
@@ -169,6 +169,78 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(bfRes.status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(action === "address" ? { ...(bfData as object), bech32: bech32Addr } : bfData));
       console.log(`[Beni] Blockfrost · ${action} · ${bech32Addr.slice(0, 20)}…`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: msg }));
+    }
+    return;
+  }
+
+  // ── Agent-state proxy (local dev mirrors Vercel /api/agent-state) ────────────
+  if (req.method === "GET" && req.url === "/api/agent-state") {
+    const scriptAddress = process.env.BENI_SCRIPT_ADDRESS;
+    const bfKey         = process.env.BLOCKFROST_PREVIEW_KEY;
+    const WINDOW_MS     = 86_400_000;
+
+    if (!scriptAddress || !bfKey) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        deployed: false,
+        message: "Agent wallet not yet deployed. Run: npx tsx sdk/scripts/deploy-wallet.ts",
+      }));
+      return;
+    }
+
+    const BF_BASE = "https://cardano-preview.blockfrost.io/api/v0";
+    const bfHeaders = { project_id: bfKey, "Content-Type": "application/json" };
+    try {
+      const utxosRes = await fetch(`${BF_BASE}/addresses/${scriptAddress}/utxos`, { headers: bfHeaders });
+      if (!utxosRes.ok) {
+        if (utxosRes.status === 404) {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ deployed: true, funded: false, scriptAddress }));
+          return;
+        }
+        throw new Error(`Blockfrost ${utxosRes.status}`);
+      }
+      const utxos = await utxosRes.json() as Array<Record<string, unknown>>;
+      if (!utxos.length) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ deployed: true, funded: false, scriptAddress }));
+        return;
+      }
+      const threadTokenPolicy = process.env.BENI_THREAD_TOKEN_POLICY ?? "";
+      const stateUtxo = (utxos.find((u: Record<string, unknown>) =>
+        (u.amount as Array<{unit: string}>)?.some(a => a.unit === threadTokenPolicy)
+      ) ?? utxos[0]) as Record<string, unknown>;
+
+      const lovelace  = (stateUtxo.amount as Array<{unit: string; quantity: string}>)
+        ?.find(a => a.unit === "lovelace")?.quantity ?? "0";
+      const balanceAda = Number(lovelace) / 1_000_000;
+
+      const txsRes = await fetch(
+        `${BF_BASE}/addresses/${scriptAddress}/transactions?count=10&order=desc`,
+        { headers: bfHeaders }
+      );
+      const txs = txsRes.ok ? (await txsRes.json() as unknown[]) : [];
+
+      // Minimal rules — we don't run the full CBOR decoder here; let the API do it
+      // Just return funded state + balance for local dev
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        deployed: true,
+        funded: true,
+        scriptAddress,
+        balanceAda,
+        lovelace,
+        txCount: (txs as unknown[]).length,
+        recentTxs: (txs as unknown[]).slice(0, 5),
+        rules: null,   // full datum decode only on Vercel
+        rawDatum: stateUtxo.inline_datum ?? null,
+        threadTokenPolicy,
+      }));
+      console.log(`[Beni] agent-state · ₳ ${balanceAda.toFixed(2)} at ${scriptAddress.slice(0, 20)}…`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { "Content-Type": "application/json" });

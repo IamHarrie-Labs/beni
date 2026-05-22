@@ -315,6 +315,61 @@ GET  /api/blockfrost?action=txs&addr=addr_test1...`}/>
         </Modal>
       )}
 
+      {modal === "freeze" && (
+        <Modal title={frozen ? "Resume wallet operations" : "Emergency freeze"} onClose={() => setModal(null)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {frozen ? (
+              <>
+                <div style={{ padding: "14px 16px", border: "1.5px solid var(--ok)", background: "rgba(0,180,80,0.05)", fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
+                  The wallet is currently marked frozen. To truly unfreeze on-chain you must submit an <strong>OwnerAction</strong> transaction using the SDK — the UI badge is a local indicator only.
+                </div>
+                <div className="smallcaps" style={{ color: "var(--ok)", fontSize: 10 }}>On-chain unfreeze (SDK)</div>
+                <CodeBlock lang="typescript" code={`import { ownerAction } from "./sdk/src/index.js";
+
+// Owner co-signs — sets isFrozen: false in the on-chain datum.
+// Takes effect within one Cardano block (~20s on Preview).
+const txHash = await ownerAction(lucid, wallet, {
+  ...wallet.config,
+  isFrozen: false,
+});
+console.log("Unfrozen:", txHash);`}/>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { setFrozen(false); setModal(null); showToast("Marked active in UI — run ownerAction() to unfreeze on-chain."); }}
+                    className="ink-btn" style={{ flex: 1, height: 40, fontSize: 13 }}>
+                    Mark active in UI (demo)
+                  </button>
+                  <button onClick={() => setModal(null)} className="ink-btn ghost" style={{ height: 40, padding: "0 20px", fontSize: 13 }}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ padding: "14px 16px", border: "1.5px solid var(--danger)", background: "rgba(180,40,40,0.04)", fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
+                  <strong>Emergency freeze halts all agent spending.</strong> This UI badge is a local indicator. To enforce the freeze on-chain, call <code className="mono" style={{ fontSize: 12 }}>freezeWallet()</code> from the SDK — it writes <code className="mono" style={{ fontSize: 12 }}>is_frozen = true</code> into the Cardano datum, and the Aiken validator will reject every subsequent Spend redeemer.
+                </div>
+                <div className="smallcaps" style={{ color: "var(--danger)", fontSize: 10 }}>On-chain freeze (SDK)</div>
+                <CodeBlock lang="typescript" code={`import { freezeWallet } from "./sdk/src/index.js";
+
+// Freezes the wallet on Cardano — takes effect within one block.
+// Only the owner can unfreeze (via ownerAction with isFrozen: false).
+const txHash = await freezeWallet(lucid, wallet);
+console.log("Frozen:", txHash);`}/>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { setFrozen(true); setModal(null); showToast("Marked frozen in UI — run freezeWallet() to enforce on-chain."); }}
+                    className="ink-btn" style={{ flex: 1, height: 40, fontSize: 13, background: "var(--danger)", borderColor: "var(--danger)" }}>
+                    Mark frozen in UI (demo)
+                  </button>
+                  <button onClick={() => setModal(null)} className="ink-btn ghost" style={{ height: 40, padding: "0 20px", fontSize: 13 }}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+
       <Toast msg={toast}/>
     </div>
   );
@@ -508,7 +563,7 @@ function Main({ activePage, navigateTo, frozen, setFrozen, wallet, showChat, set
             <Icon.code size={13}/> API
           </button>
           <button
-            onClick={() => setFrozen(!frozen)}
+            onClick={() => setModal("freeze")}
             className="ink-btn"
             style={{
               height: 38, fontSize: 13, padding: "0 14px",
@@ -811,6 +866,14 @@ function WhitelistSummary({ agentState, navigateTo }) {
   );
 }
 
+// Deterministic pseudo-random float [0, 1) from a string.
+// Prevents bar heights from flickering on every re-render.
+function hashToFloat(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return (h >>> 0) / 0xFFFFFFFF;
+}
+
 function SpendCurve({ wallet }) {
   const w = 300, h = 52;
   if (!wallet.connected || wallet.txs.length === 0) {
@@ -828,7 +891,7 @@ function SpendCurve({ wallet }) {
       <line x1="0" y1={h * 0.9} x2={w} y2={h * 0.9} stroke="var(--ink-4)" strokeWidth="1"/>
       {txs.map((tx, i) => {
         const x = i * (w / txs.length);
-        const barH = 8 + Math.random() * 18;
+        const barH = 8 + hashToFloat(tx.tx_hash) * 18;
         return <rect key={tx.tx_hash} x={x + 1} y={h * 0.9 - barH} width={barW} height={barH} fill="var(--ink)" opacity="0.6"/>;
       })}
       <text x="4" y="10" fontSize="8" fontFamily="var(--mono)" fill="var(--accent)">{txs.length} TXS</text>

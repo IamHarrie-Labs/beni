@@ -1,4 +1,5 @@
 /* global React */
+// WalletConnect is exported to window by components.jsx (loaded first).
 const { useState: useStateL, useEffect: useEffectL } = React;
 
 /* =================================================================== */
@@ -18,11 +19,11 @@ function Hero({ setPage }) {
           </div>
         </div>
 
-        {/* Massive headline */}
+        {/* Headline — reduced from clamp(80px,14vw,220px) */}
         <div style={{ position: "relative", marginBottom: 24 }}>
           <h1 className="display" style={{
-            fontSize: "clamp(80px, 14vw, 220px)",
-            lineHeight: 0.86,
+            fontSize: "clamp(48px, 9vw, 120px)",
+            lineHeight: 0.88,
             letterSpacing: "-0.025em",
             margin: 0,
           }}>
@@ -31,7 +32,7 @@ function Hero({ setPage }) {
             know <span style={{ position: "relative", display: "inline-block" }}>
               when
               <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.18em" }}>
-                <ScribbleUnder width="100%" thick={6} color="var(--accent)"/>
+                <ScribbleUnder width="100%" thick={5} color="var(--accent)"/>
               </span>
             </span>
             <br/>
@@ -39,20 +40,20 @@ function Hero({ setPage }) {
           </h1>
 
           {/* Floating doodles */}
-          <div style={{ position: "absolute", top: 60, right: -10, transform: "rotate(8deg)" }}>
-            <Star size={36} color="var(--accent)"/>
+          <div style={{ position: "absolute", top: 40, right: -10, transform: "rotate(8deg)" }}>
+            <Star size={30} color="var(--accent)"/>
           </div>
-          <div style={{ position: "absolute", top: 220, right: 80, transform: "rotate(-6deg)", display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="hand" style={{ fontSize: 30, color: "var(--ink-2)" }}>← the whole product, in five words</span>
+          <div style={{ position: "absolute", top: 150, right: 80, transform: "rotate(-6deg)", display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>← the whole product, in five words</span>
           </div>
-          <div style={{ position: "absolute", bottom: -20, left: -20, transform: "rotate(-12deg)" }}>
-            <Asterisk size={48} color="var(--accent)"/>
+          <div style={{ position: "absolute", bottom: -16, left: -16, transform: "rotate(-12deg)" }}>
+            <Asterisk size={40} color="var(--accent)"/>
           </div>
         </div>
 
         {/* Sub + CTAs row */}
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 60, alignItems: "end", marginTop: 56 }}>
-          <p style={{ fontFamily: "var(--serif)", fontSize: 22, lineHeight: 1.45, margin: 0, maxWidth: 640, color: "var(--ink-2)" }}>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.45, margin: 0, maxWidth: 600, color: "var(--ink-2)" }}>
             AI agents are about to be in charge of your money. Beni is the
             <em style={{ color: "var(--ink)", fontStyle: "italic" }}> hard physical edge </em>
             of what they're allowed to do — written as Cardano smart contracts,
@@ -60,7 +61,7 @@ function Hero({ setPage }) {
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "end", flexWrap: "wrap" }}>
             <button className="ink-btn" onClick={() => setPage("dashboard")}>
-              Open the dashboard <Icon.arrow size={18} color="var(--paper)"/>
+              Open Beni <Icon.arrow size={18} color="var(--paper)"/>
             </button>
             <button className="ink-btn ghost" onClick={() => setPage("docs")}>
               Read the docs
@@ -79,7 +80,6 @@ function HeroDiagram() {
   return (
     <div style={{ marginTop: 80, position: "relative" }}>
       <div style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", padding: "44px 0", display: "grid", gridTemplateColumns: "1fr auto 1fr auto 1fr", gap: 24, alignItems: "center" }}>
-        {/* AI agent */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <DiagramTile label="THE AGENT" hint="autonomous, fast, fallible">
             <Icon.ai size={60} sw={1.6}/>
@@ -89,17 +89,15 @@ function HeroDiagram() {
         <div style={{ transform: "translateY(-30px)" }}>
           <HandArrow w={100} h={40} dir="right"/>
         </div>
-        {/* Beni shield */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <DiagramTile primary label="BENI" hint="rules, on chain">
-            <BeniMark size={68} color="var(--paper)"/>
+            <BeniMark size={80} color="var(--paper)"/>
           </DiagramTile>
           <span className="hand" style={{ fontSize: 24, color: "var(--accent)" }}>checks every move</span>
         </div>
         <div style={{ transform: "translateY(-30px)" }}>
           <HandArrow w={100} h={40} dir="right"/>
         </div>
-        {/* Cardano */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <DiagramTile label="CARDANO" hint="settles or doesn't">
             <Hexagon/>
@@ -107,7 +105,6 @@ function HeroDiagram() {
           <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>or refuses to settle</span>
         </div>
       </div>
-      {/* Caption row */}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.16em", textTransform: "uppercase" }}>
         <span>Fig. 01 — the three actors</span>
         <span>nothing else stands between an agent and your wallet.</span>
@@ -179,7 +176,8 @@ function Problem() {
         <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.4fr", gap: 80, alignItems: "start" }}>
           <div style={{ position: "sticky", top: 100 }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One — The mess</span>
-            <h2 className="display" style={{ fontSize: 80, lineHeight: 0.94, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
+            {/* Reduced from 80px */}
+            <h2 className="display" style={{ fontSize: 52, lineHeight: 0.96, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
               AI agents<br/>
               can move money.<br/>
               <span style={{ color: "var(--ink-4)", fontStyle: "italic" }}>nothing</span><br/>
@@ -191,10 +189,9 @@ function Problem() {
               there is no enforced ceiling between the agent and your treasury.
             </p>
             <div style={{ marginTop: 28 }}>
-              <span className="hand" style={{ fontSize: 32, color: "var(--accent)" }}>and "trust me" is not a security model.</span>
+              <span className="hand" style={{ fontSize: 28, color: "var(--accent)" }}>and "trust me" is not a security model.</span>
             </div>
           </div>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             <StatPanel n="$2.3B" lead="lost to wallet drains in 2025" tail="DeFi Llama / Chainalysis" rot={-0.4}/>
             <StatPanel n="73%" lead={<>of agent operators report a <em>runaway-spend event</em></>} tail="Beni operator survey · n=412" rot={0.6}/>
@@ -210,20 +207,19 @@ function StatPanel({ n, lead, tail, accent, rot = 0 }) {
   return (
     <div style={{
       borderTop: "1.5px solid var(--ink)",
-      padding: "40px 0",
-      display: "grid",
-      gridTemplateColumns: "auto 1fr",
-      gap: 40,
+      padding: "36px 0",
+      display: "grid", gridTemplateColumns: "auto 1fr", gap: 36,
       alignItems: "baseline",
     }}>
+      {/* Reduced from 140px */}
       <div className="display" style={{
-        fontSize: 140, lineHeight: 0.9, letterSpacing: "-0.03em",
+        fontSize: 90, lineHeight: 0.9, letterSpacing: "-0.03em",
         color: accent ? "var(--accent)" : "var(--ink)",
         transform: `rotate(${rot}deg)`,
       }}>{n}</div>
       <div>
-        <div style={{ fontSize: 26, lineHeight: 1.25, color: "var(--ink)" }}>{lead}</div>
-        <div className="smallcaps" style={{ marginTop: 14, color: "var(--ink-3)" }}>— {tail}</div>
+        <div style={{ fontSize: 24, lineHeight: 1.25, color: "var(--ink)" }}>{lead}</div>
+        <div className="smallcaps" style={{ marginTop: 12, color: "var(--ink-3)" }}>— {tail}</div>
       </div>
     </div>
   );
@@ -239,17 +235,17 @@ function HowItWorks() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 60 }}>
           <div>
             <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two — How</span>
-            <h2 className="display" style={{ fontSize: 96, lineHeight: 0.92, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
+            {/* Reduced from 96px */}
+            <h2 className="display" style={{ fontSize: 62, lineHeight: 0.94, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
               Every transaction<br/>passes through Beni.
             </h2>
           </div>
-          <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.5, maxWidth: 440, color: "var(--paper)" }}>
+          <p style={{ fontFamily: "var(--serif)", fontSize: 19, lineHeight: 1.5, maxWidth: 420, color: "var(--paper)" }}>
             Your agent signs as usual. <em>Our validator</em> looks at the
             transaction, checks it against your rules, and lets it through —
             or doesn't.
           </p>
         </div>
-
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, background: "var(--paper)", border: "1.5px solid var(--paper)" }}>
           {[
             { n: "01", t: "Agent builds the transaction", d: "Beni's SDK wraps your agent's wallet provider. The agent's code does not change." },
@@ -259,14 +255,13 @@ function HowItWorks() {
           ].map(s => (
             <div key={s.n} style={{ background: "var(--ink)", padding: "32px 28px", display: "flex", flexDirection: "column", gap: 16, minHeight: 280 }}>
               <div className="display" style={{ fontSize: 56, color: "var(--accent-3)", lineHeight: 1 }}>{s.n}</div>
-              <div style={{ fontFamily: "var(--display)", fontSize: 26, lineHeight: 1.1, marginTop: 8 }}>{s.t}</div>
-              <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--paper-3)", margin: 0 }}>{s.d}</p>
+              <div style={{ fontFamily: "var(--display)", fontSize: 24, lineHeight: 1.1, marginTop: 8 }}>{s.t}</div>
+              <p style={{ fontSize: 15, lineHeight: 1.55, color: "var(--paper-3)", margin: 0 }}>{s.d}</p>
             </div>
           ))}
         </div>
-
         <div style={{ marginTop: 32, display: "flex", justifyContent: "center", alignItems: "center", gap: 14 }}>
-          <span className="hand" style={{ fontSize: 32, color: "var(--accent-3)" }}>and that's basically the whole thing.</span>
+          <span className="hand" style={{ fontSize: 28, color: "var(--accent-3)" }}>and that's basically the whole thing.</span>
           <HandArrow dir="right" color="var(--accent-3)" w={80}/>
         </div>
       </div>
@@ -279,20 +274,21 @@ function HowItWorks() {
 /* =================================================================== */
 function Rules() {
   const items = [
-    { n: "I.", t: "A ceiling on every spend", d: "Set the maximum size of any single transaction. The agent physically cannot exceed it." , doodle: "cap" },
-    { n: "II.", t: "A rolling daily budget", d: "A smooth, time-windowed allowance. No end-of-day cliff, no off-chain timer to trust.", doodle: "clock" },
-    { n: "III.", t: "Trusted addresses bypass review", d: "Pre-approve who the agent can pay freely. Everything else stops at the gate.", doodle: "list" },
-    { n: "IV.", t: "Human-in-the-loop approvals", d: "Anything above your threshold pauses for your signature. Approve in two seconds.", doodle: "hand" },
-    { n: "V.", t: "Emergency freeze", d: "One click. The thread token gets revoked. Every outbound transaction halts within a block.", doodle: "freeze" },
-    { n: "VI.", t: "Live monitoring", d: "Watch every decision your validator makes, in real time. Subscribe to a webhook, or just look.", doodle: "eye" },
-    { n: "VII.", t: "A chatbot that knows your rules", d: "Ask Beni — in English — why something was approved, blocked, or queued. It reads the chain.", doodle: "chat" },
-    { n: "VIII.", t: "Thread-token integrity", d: "A non-fungible thread token anchors every policy update. Tampering is provably detectable.", doodle: "shield" },
+    { n: "I.",    t: "A ceiling on every spend",     d: "Set the maximum size of any single transaction. The agent physically cannot exceed it.",  doodle: "cap" },
+    { n: "II.",   t: "A rolling daily budget",        d: "A smooth, time-windowed allowance. No end-of-day cliff, no off-chain timer to trust.",   doodle: "clock" },
+    { n: "III.",  t: "Trusted addresses bypass review", d: "Pre-approve who the agent can pay freely. Everything else stops at the gate.",          doodle: "list" },
+    { n: "IV.",   t: "Human-in-the-loop approvals",  d: "Anything above your threshold pauses for your signature. Approve in two seconds.",         doodle: "hand" },
+    { n: "V.",    t: "Emergency freeze",              d: "One click. The thread token gets revoked. Every outbound transaction halts within a block.", doodle: "freeze" },
+    { n: "VI.",   t: "Live monitoring",               d: "Watch every decision your validator makes, in real time. Subscribe to a webhook, or just look.", doodle: "eye" },
+    { n: "VII.",  t: "A chatbot that knows your rules", d: "Ask Beni — in English — why something was approved, blocked, or queued. It reads the chain.", doodle: "chat" },
+    { n: "VIII.", t: "Thread-token integrity",        d: "A non-fungible thread token anchors every policy update. Tampering is provably detectable.", doodle: "shield" },
   ];
   return (
     <section style={{ padding: "140px 0 100px" }}>
       <div className="wide">
         <div style={{ marginBottom: 80, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 60, alignItems: "end" }}>
-          <h2 className="display" style={{ fontSize: 120, lineHeight: 0.9, margin: 0, letterSpacing: "-0.025em" }}>
+          {/* Reduced from 120px */}
+          <h2 className="display" style={{ fontSize: 74, lineHeight: 0.92, margin: 0, letterSpacing: "-0.025em" }}>
             Eight rules.<br/>
             <span style={{ color: "var(--accent)" }}>Endless</span> combinations.
           </h2>
@@ -301,23 +297,19 @@ function Rules() {
             a one-bot trading account to a multi-team treasury vault.
           </p>
         </div>
-
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, borderTop: "1.5px solid var(--ink)", borderLeft: "1.5px solid var(--ink)" }}>
           {items.map((x, i) => (
             <div key={i} style={{
-              borderRight: "1.5px solid var(--ink)",
-              borderBottom: "1.5px solid var(--ink)",
-              padding: 28,
-              minHeight: 260,
+              borderRight: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)",
+              padding: 28, minHeight: 240,
               display: "flex", flexDirection: "column", gap: 14,
-              background: "var(--paper)",
-              position: "relative",
+              background: "var(--paper)", position: "relative",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                <div className="display" style={{ fontSize: 48, color: "var(--accent)", lineHeight: 1, letterSpacing: "-0.02em" }}>{x.n}</div>
+                <div className="display" style={{ fontSize: 44, color: "var(--accent)", lineHeight: 1, letterSpacing: "-0.02em" }}>{x.n}</div>
                 <RuleDoodle kind={x.doodle}/>
               </div>
-              <div className="display" style={{ fontSize: 24, lineHeight: 1.1, marginTop: 8 }}>{x.t}</div>
+              <div className="display" style={{ fontSize: 22, lineHeight: 1.1, marginTop: 6 }}>{x.t}</div>
               <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>{x.d}</p>
             </div>
           ))}
@@ -329,14 +321,14 @@ function Rules() {
 
 function RuleDoodle({ kind }) {
   const map = {
-    cap: <Icon.shield size={36} sw={1.6}/>,
-    clock: <svg viewBox="0 0 24 24" width={36} height={36}><g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.6" fill="none" strokeLinecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 8 V13 L16 16"/><line x1="9" y1="3" x2="15" y2="3"/></g></svg>,
-    list: <Icon.list size={36} sw={1.6}/>,
-    hand: <svg viewBox="0 0 24 24" width={36} height={36}><g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11 V5 C 9 4, 10 3, 11 3 C 12 3, 13 4, 13 5 V11 V8 C 13 7, 14 6, 15 6 C 16 6, 17 7, 17 8 V13 C 17 17, 14 21, 10 21 C 6 21, 5 17, 5 14 V11 C 5 10, 6 9, 7 9 C 8 9, 9 10, 9 11 Z"/></g></svg>,
-    freeze: <Icon.freeze size={36} sw={1.6}/>,
-    eye: <Icon.eye size={36} sw={1.6}/>,
-    chat: <Icon.chat size={36} sw={1.6}/>,
-    shield: <Icon.shield size={36} sw={1.6}/>,
+    cap:    <Icon.shield size={34} sw={1.6}/>,
+    clock:  <svg viewBox="0 0 24 24" width={34} height={34}><g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.6" fill="none" strokeLinecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 8 V13 L16 16"/><line x1="9" y1="3" x2="15" y2="3"/></g></svg>,
+    list:   <Icon.list size={34} sw={1.6}/>,
+    hand:   <svg viewBox="0 0 24 24" width={34} height={34}><g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11 V5 C 9 4, 10 3, 11 3 C 12 3, 13 4, 13 5 V11 V8 C 13 7, 14 6, 15 6 C 16 6, 17 7, 17 8 V13 C 17 17, 14 21, 10 21 C 6 21, 5 17, 5 14 V11 C 5 10, 6 9, 7 9 C 8 9, 9 10, 9 11 Z"/></g></svg>,
+    freeze: <Icon.freeze size={34} sw={1.6}/>,
+    eye:    <Icon.eye size={34} sw={1.6}/>,
+    chat:   <Icon.chat size={34} sw={1.6}/>,
+    shield: <Icon.shield size={34} sw={1.6}/>,
   };
   return <span style={{ color: "var(--ink-3)" }}>{map[kind]}</span>;
 }
@@ -351,22 +343,23 @@ function SdkSection({ setPage }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 80, alignItems: "center" }}>
           <div>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three — For builders</span>
-            <h2 className="display" style={{ fontSize: 88, lineHeight: 0.92, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
+            {/* Reduced from 88px */}
+            <h2 className="display" style={{ fontSize: 58, lineHeight: 0.94, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
               Three lines.<br/>
               That's the<br/>
               whole integration.
             </h2>
-            <p style={{ fontSize: 19, lineHeight: 1.5, color: "var(--ink-2)", maxWidth: 460, marginBottom: 28 }}>
+            <p style={{ fontSize: 18, lineHeight: 1.5, color: "var(--ink-2)", maxWidth: 460, marginBottom: 28 }}>
               Wrap any Cardano wallet provider with a list of rules. Send transactions
               like normal. The validator does the rest — on chain, with no off-chain
               service you have to trust or pay.
             </p>
             <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
               <button className="ink-btn" onClick={() => setPage("docs")}>Open the SDK docs <Icon.arrow size={16} color="var(--paper)"/></button>
-              <button className="ink-btn ghost"><Icon.github size={16}/> Star on GitHub</button>
+              <button className="ink-btn ghost" onClick={() => window.open("https://github.com/beni-run/beni", "_blank")}><Icon.github size={16}/> Star on GitHub</button>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <span className="hand" style={{ fontSize: 28, color: "var(--accent)" }}>also available in</span>
+              <span className="hand" style={{ fontSize: 26, color: "var(--accent)" }}>also available in</span>
               <span className="stamp">AIKEN</span>
               <span className="stamp">TYPESCRIPT</span>
               <span className="stamp">REST + WS</span>
@@ -422,15 +415,16 @@ function Testimonial() {
     <section style={{ padding: "120px 0", position: "relative" }}>
       <div className="wide">
         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 60, alignItems: "center" }}>
-          <div className="display" style={{ fontSize: 240, color: "var(--accent)", lineHeight: 0.6 }}>“</div>
+          <div className="display" style={{ fontSize: 200, color: "var(--accent)", lineHeight: 0.6 }}>"</div>
           <div>
-            <p className="display" style={{ fontSize: 56, lineHeight: 1.05, letterSpacing: "-0.02em", margin: 0 }}>
+            {/* Reduced from 56px */}
+            <p className="display" style={{ fontSize: 38, lineHeight: 1.08, letterSpacing: "-0.02em", margin: 0 }}>
               We ran an agent for six months without rails and lost sleep every night.
               With Beni the agent does what it's good at, and the chain{" "}
               <span style={{ position: "relative", display: "inline-block", color: "var(--accent)" }}>
                 physically can't
                 <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.15em" }}>
-                  <ScribbleUnder thick={4} color="var(--accent)"/>
+                  <ScribbleUnder thick={3} color="var(--accent)"/>
                 </span>
               </span>{" "}
               do anything else.
@@ -468,31 +462,32 @@ function FAQ() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 80 }}>
           <div style={{ position: "sticky", top: 100, alignSelf: "start" }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four — Q&amp;A</span>
-            <h2 className="display" style={{ fontSize: 88, lineHeight: 0.92, margin: "16px 0 28px" }}>
+            {/* Reduced from 88px */}
+            <h2 className="display" style={{ fontSize: 58, lineHeight: 0.94, margin: "16px 0 28px" }}>
               Questions,<br/>answered.
             </h2>
             <p style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 360 }}>
               For everything else the docs go deeper. Or write us a letter.
             </p>
-            <span className="hand" style={{ fontSize: 28, color: "var(--accent)", display: "inline-block", marginTop: 18 }}>hello@beni.run</span>
+            <span className="hand" style={{ fontSize: 26, color: "var(--accent)", display: "inline-block", marginTop: 18 }}>hello@beni.run</span>
           </div>
           <div style={{ borderTop: "1.5px solid var(--ink)" }}>
             {items.map((it, i) => (
               <div key={i} style={{ borderBottom: "1.5px solid var(--ink)" }}>
                 <button onClick={() => setOpen(open === i ? -1 : i)} style={{
-                  width: "100%", background: "transparent", border: 0, padding: "26px 0",
+                  width: "100%", background: "transparent", border: 0, padding: "22px 0",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  color: "var(--ink)", fontFamily: "var(--display)", fontSize: 28, lineHeight: 1.1,
+                  color: "var(--ink)", fontFamily: "var(--display)", fontSize: 24, lineHeight: 1.1,
                   cursor: "pointer", textAlign: "left", letterSpacing: "-0.015em",
                 }}>
-                  <span style={{ display: "flex", gap: 18, alignItems: "baseline" }}>
-                    <span style={{ color: "var(--ink-4)", fontSize: 20 }}>{String(i + 1).padStart(2, "0")}.</span>
+                  <span style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
+                    <span style={{ color: "var(--ink-4)", fontSize: 18 }}>{String(i + 1).padStart(2, "0")}.</span>
                     {it.q}
                   </span>
-                  <span style={{ marginLeft: 24, fontSize: 32, color: "var(--accent)", transform: open === i ? "rotate(45deg)" : "none", transition: "transform .2s" }}>+</span>
+                  <span style={{ marginLeft: 24, fontSize: 28, color: "var(--accent)", transform: open === i ? "rotate(45deg)" : "none", transition: "transform .2s" }}>+</span>
                 </button>
                 {open === i && (
-                  <div style={{ paddingBottom: 28, paddingLeft: 56, fontSize: 19, lineHeight: 1.55, color: "var(--ink-2)" }}>{it.a}</div>
+                  <div style={{ paddingBottom: 24, paddingLeft: 48, fontSize: 18, lineHeight: 1.55, color: "var(--ink-2)" }}>{it.a}</div>
                 )}
               </div>
             ))}
@@ -517,21 +512,25 @@ function FinalCTA({ setPage }) {
           <div style={{ position: "absolute", bottom: 40, left: 60, transform: "rotate(-12deg)" }}>
             <Asterisk size={56} color="var(--accent)"/>
           </div>
-
           <div className="smallcaps" style={{ color: "var(--accent-3)", marginBottom: 24 }}>Last page</div>
-          <h2 className="display" style={{ fontSize: "clamp(80px, 12vw, 180px)", lineHeight: 0.86, margin: 0, letterSpacing: "-0.03em", color: "var(--paper)" }}>
+          {/* Reduced from clamp(80px,12vw,180px) */}
+          <h2 className="display" style={{ fontSize: "clamp(48px, 8vw, 110px)", lineHeight: 0.88, margin: 0, letterSpacing: "-0.03em", color: "var(--paper)" }}>
             Give your<br/>
             agents <span style={{ color: "var(--accent)" }}>a leash</span>.
           </h2>
-          <p style={{ fontSize: 22, lineHeight: 1.5, maxWidth: 580, marginTop: 32, color: "var(--paper-3)" }}>
+          <p style={{ fontSize: 20, lineHeight: 1.5, maxWidth: 560, marginTop: 32, color: "var(--paper-3)" }}>
             Free during the developer preview. Mainnet contracts.
-            No off-chain custody. <span className="hand" style={{ fontSize: 32, color: "var(--accent-3)" }}>(seriously, none.)</span>
+            No off-chain custody. <span className="hand" style={{ fontSize: 28, color: "var(--accent-3)" }}>(seriously, none.)</span>
           </p>
           <div style={{ marginTop: 40, display: "flex", gap: 14, flexWrap: "wrap" }}>
             <button className="ink-btn accent" onClick={() => setPage("dashboard")}>
-              Open the dashboard <Icon.arrow size={18} color="var(--paper)"/>
+              Open Beni <Icon.arrow size={18} color="var(--paper)"/>
             </button>
-            <button className="ink-btn" style={{ background: "transparent", color: "var(--paper)", borderColor: "var(--paper)", boxShadow: "3px 3px 0 var(--accent)" }} onClick={() => setPage("docs")}>
+            <button
+              className="ink-btn"
+              style={{ background: "transparent", color: "var(--paper)", borderColor: "var(--paper)", boxShadow: "3px 3px 0 var(--accent)" }}
+              onClick={() => window.open("mailto:hello@beni.run?subject=Demo%20request%20from%20beni.run&body=Hi%2C%20I%27d%20love%20a%2020-minute%20demo%20of%20Beni%20for%20AI%20agent%20wallets.%20Here%27s%20a%20bit%20about%20my%20use%20case%3A", "_blank")}
+            >
               Book a 20-min demo
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { Blockfrost, Lucid } from "lucid-cardano";
+import { Blockfrost, Lucid, type LucidEvolution } from "@lucid-evolution/lucid";
 import type { BeniNetwork, BeniSDKOptions } from "./types.js";
 
 const BLOCKFROST_URLS: Record<BeniNetwork, string> = {
@@ -7,8 +7,8 @@ const BLOCKFROST_URLS: Record<BeniNetwork, string> = {
   Mainnet: "https://cardano-mainnet.blockfrost.io/api/v0",
 };
 
-export async function makeLucid(opts: BeniSDKOptions): Promise<Lucid> {
-  return await Lucid.new(
+export async function makeLucid(opts: BeniSDKOptions): Promise<LucidEvolution> {
+  return await Lucid(
     new Blockfrost(BLOCKFROST_URLS[opts.network], opts.blockfrostApiKey),
     opts.network,
   );

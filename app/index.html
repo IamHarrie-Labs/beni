@@ -17,6 +17,7 @@
 <body>
   <div id="root"></div>
 
+  <!-- Load order matters: components.jsx first (exports useWallet, WalletConnect, WalletModal, etc.) -->
   <script type="text/babel" src="components.jsx"></script>
   <script type="text/babel" src="landing.jsx"></script>
   <script type="text/babel" src="dashboard.jsx"></script>
@@ -26,32 +27,62 @@
     const { useState, useEffect } = React;
 
     function App() {
+      // Never start on dashboard — must connect wallet first
       const [page, setPage] = useState(() => {
         const h = window.location.hash.replace("#", "");
-        return ["landing", "dashboard", "security", "docs", "brand"].includes(h) ? h : "landing";
+        return ["landing", "security", "docs", "brand"].includes(h) ? h : "landing";
       });
+
+      // Wallet state — shared across the whole app
+      const wallet = useWallet();
+
+      // When someone tries to open Beni without a wallet, show the picker modal
+      const [showWalletModal, setShowWalletModal] = useState(false);
+
+      // Once wallet connects while the modal is open → go straight to dashboard
+      useEffect(() => {
+        if (wallet.connected && showWalletModal) {
+          setShowWalletModal(false);
+          setPage("dashboard");
+        }
+      }, [wallet.connected]);
 
       useEffect(() => {
         window.location.hash = page;
         window.scrollTo({ top: 0, behavior: "instant" });
       }, [page]);
 
-      let body;
-      if (page === "landing") body = <Landing setPage={setPage}/>;
-      else if (page === "dashboard") body = <Dashboard/>;
-      else if (page === "security") body = <SecurityPage/>;
-      else if (page === "docs") body = <DocsPage/>;
-      else if (page === "brand") body = <BrandPage/>;
+      // Gate the dashboard behind wallet connection
+      function navigateTo(target) {
+        if (target === "dashboard" && !wallet.connected) {
+          setShowWalletModal(true);   // show wallet picker overlay
+          return;
+        }
+        setShowWalletModal(false);
+        setPage(target);
+      }
 
-      // Dashboard + Docs are full-bleed; Landing/Security/Brand show footer.
+      let body;
+      if (page === "landing")        body = <Landing setPage={navigateTo}/>;
+      else if (page === "dashboard") body = <Dashboard wallet={wallet}/>;
+      else if (page === "security")  body = <SecurityPage/>;
+      else if (page === "docs")      body = <DocsPage/>;
+      else if (page === "brand")     body = <BrandPage/>;
+
+      // Dashboard + Docs are full-bleed; others show the footer
       const showFooter = page === "landing" || page === "security" || page === "brand";
 
       return (
         <>
           <GlobalDefs/>
-          <TopNav page={page} setPage={setPage}/>
+          <TopNav page={page} setPage={navigateTo} wallet={wallet}/>
           {body}
-          {showFooter && <Footer setPage={setPage}/>}
+          {showFooter && <Footer setPage={navigateTo}/>}
+
+          {/* Wallet picker modal — appears over any page when wallet connection is required */}
+          {showWalletModal && (
+            <WalletModal wallet={wallet} onClose={() => setShowWalletModal(false)}/>
+          )}
         </>
       );
     }

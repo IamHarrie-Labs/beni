@@ -6,3 +6,4 @@ build/
 package-lock.json
 yarn.lock
 .env
+.vercel

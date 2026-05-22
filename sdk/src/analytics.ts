@@ -1,5 +1,5 @@
-import type { Lucid } from "lucid-cardano";
-import { Data } from "lucid-cardano";
+import type { LucidEvolution as Lucid } from "@lucid-evolution/lucid";
+import { Data } from "@lucid-evolution/lucid";
 import type { BeniWallet, DailyUsage, TxRecord, WalletStatus } from "./types.js";
 import { WalletDatumSchema, type WalletDatumType, datumToConfig } from "./datum.js";
 import { msUntilWindowReset } from "./validation.js";

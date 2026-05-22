@@ -18,11 +18,18 @@
     "typecheck": "tsc --noEmit",
     "chat": "npx tsx src/chat-server.ts"
   },
-  "keywords": ["cardano", "aiken", "ai-agent", "wallet", "guardrails"],
+  "keywords": [
+    "cardano",
+    "aiken",
+    "ai-agent",
+    "wallet",
+    "guardrails"
+  ],
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
     "@blockfrost/blockfrost-js": "^5.4.0",
+    "@lucid-evolution/lucid": "^0.4.31",
     "lucid-cardano": "^0.10.7"
   },
   "devDependencies": {
