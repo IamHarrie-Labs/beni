@@ -786,25 +786,51 @@ function ActivityFeed({ wallet, agentState, navigateTo }) {
 }
 
 function ApprovalsSummary({ navigateTo }) {
+  const approvals = useApprovals();
+  const count = approvals.pending.length;
+  const hasItems = count > 0;
+  const next = approvals.pending[0];
+
   return (
     <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", boxShadow: "4px 4px 0 var(--ink)" }}>
       <div style={{ padding: "14px 18px", borderBottom: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div className="smallcaps" style={{ color: "var(--accent)", fontSize: 9 }}>Approvals queue</div>
-          <div className="display" style={{ fontSize: 18, lineHeight: 1.1, marginTop: 2 }}>0 pending</div>
+          <div className="display" style={{ fontSize: 18, lineHeight: 1.1, marginTop: 2 }}>
+            {hasItems ? `${count} pending` : "0 pending"}
+          </div>
         </div>
         <ViewAllBtn onClick={() => navigateTo("approvals")}/>
       </div>
-      <div style={{ padding: "28px 18px", textAlign: "center" }}>
-        <div className="hand" style={{ fontSize: 26, color: "var(--ok)", marginBottom: 6 }}>queue clear ✓</div>
-        <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
-          Above-cap spends pause here for your co-signature before hitting the chain.
-        </div>
-        <button onClick={() => navigateTo("approvals")} style={{
-          marginTop: 16, padding: "8px 20px", border: "1.5px solid var(--ink)",
-          background: "var(--paper-2)", fontFamily: "var(--serif)", fontSize: 13,
-          cursor: "pointer", color: "var(--ink)",
-        }}>Manage approvals →</button>
+      <div style={{ padding: "20px 18px 22px", textAlign: hasItems ? "left" : "center" }}>
+        {hasItems ? (
+          <div>
+            <div className="display" style={{ fontSize: 20, color: "var(--ink)", marginBottom: 4 }}>
+              ₳ {fmtAda(next.ada)}
+            </div>
+            <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginBottom: 6 }}>
+              → {shortenAddr(next.toAddress)}
+            </div>
+            <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.45, marginBottom: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {next.reason || "—"}
+            </div>
+            <button onClick={() => navigateTo("approvals")} className="ink-btn" style={{
+              height: 36, padding: "0 16px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)", width: "100%",
+            }}>Review & decide →</button>
+          </div>
+        ) : (
+          <div>
+            <div className="hand" style={{ fontSize: 26, color: "var(--ok)", marginBottom: 6 }}>queue clear ✓</div>
+            <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
+              Above-cap spends pause here for your co-signature before hitting the chain.
+            </div>
+            <button onClick={() => navigateTo("approvals")} style={{
+              marginTop: 16, padding: "8px 20px", border: "1.5px solid var(--ink)",
+              background: "var(--paper-2)", fontFamily: "var(--serif)", fontSize: 13,
+              cursor: "pointer", color: "var(--ink)",
+            }}>Manage approvals →</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -900,9 +926,90 @@ function SpendCurve({ wallet }) {
 }
 
 /* ═══════════════════════════ PAGE: APPROVALS ════════════════════════════════ */
+
+const APPROVALS_API = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:3001/api/approvals"
+  : "/api/approvals";
+
+function useApprovals() {
+  const [state, setStateD] = useStateD({ loading: true, pending: [], all: [], persistent: false, error: null });
+
+  async function refresh() {
+    try {
+      const res  = await fetch(APPROVALS_API);
+      const data = await res.json();
+      setStateD({
+        loading:    false,
+        pending:    Array.isArray(data.pending) ? data.pending : [],
+        all:        Array.isArray(data.all)     ? data.all     : [],
+        persistent: Boolean(data.persistent),
+        error:      null,
+      });
+    } catch (err) {
+      setStateD(s => ({ ...s, loading: false, error: err.message }));
+    }
+  }
+
+  async function create({ toAddress, ada, reason }) {
+    const res = await fetch(APPROVALS_API, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ toAddress, ada, reason }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+    await refresh();
+    return res.json();
+  }
+
+  async function decide(id, status, txHash) {
+    const res = await fetch(`${APPROVALS_API}?id=${encodeURIComponent(id)}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ status, txHash }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+    await refresh();
+    return res.json();
+  }
+
+  async function remove(id) {
+    const res = await fetch(`${APPROVALS_API}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+    await refresh();
+  }
+
+  useEffectD(() => {
+    refresh();
+    const id = setInterval(refresh, 15_000); // re-poll twice a minute
+    return () => clearInterval(id);
+  }, []);
+
+  return { ...state, refresh, create, decide, remove };
+}
+
 function ApprovalsPage({ agentState, showToast }) {
-  const ad   = agentState?.data;
-  const live = ad?.funded;
+  const ad        = agentState?.data;
+  const live      = ad?.funded;
+  const approvals = useApprovals();
+  const pending   = approvals.pending;
+  const history   = approvals.all.filter(a => a.status !== "pending").slice(0, 8);
+  const [showQueueForm, setShowQueueForm] = useStateD(false);
+
+  async function onApprove(entry) {
+    try {
+      await approvals.decide(entry.id, "approved");
+      showToast(`Marked approved. Run approveSpend(lucid, wallet, "${entry.id.slice(0, 8)}…") to co-sign on-chain.`);
+    } catch (err) { showToast(`Error: ${err.message}`); }
+  }
+  async function onReject(entry) {
+    try {
+      await approvals.decide(entry.id, "rejected");
+      showToast("Marked rejected — no on-chain effect.");
+    } catch (err) { showToast(`Error: ${err.message}`); }
+  }
+  async function onClear(entry) {
+    try { await approvals.remove(entry.id); } catch (err) { showToast(`Error: ${err.message}`); }
+  }
 
   return (
     <div>
@@ -912,7 +1019,7 @@ function ApprovalsPage({ agentState, showToast }) {
         display: "flex", gap: 16, alignItems: "flex-start", marginBottom: 24,
       }}>
         <Icon.bell size={18}/>
-        <div>
+        <div style={{ flex: 1 }}>
           <div className="display" style={{ fontSize: 16, marginBottom: 4 }}>How approvals work</div>
           <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, maxWidth: 700 }}>
             When your AI agent requests a spend above the <strong>per-tx cap</strong>, the transaction is paused and queued here.
@@ -920,6 +1027,14 @@ function ApprovalsPage({ agentState, showToast }) {
             Rejected items are discarded with no on-chain effect.
           </div>
         </div>
+        <span className="mono" style={{
+          fontSize: 9, letterSpacing: "0.14em",
+          padding: "4px 8px", border: `1.5px solid ${approvals.persistent ? "var(--ok)" : "var(--ink-4)"}`,
+          color: approvals.persistent ? "var(--ok)" : "var(--ink-4)",
+          textTransform: "uppercase", whiteSpace: "nowrap",
+        }}>
+          {approvals.persistent ? "Persisted · KV" : "In-memory only"}
+        </span>
       </div>
 
       {/* Queue */}
@@ -927,21 +1042,101 @@ function ApprovalsPage({ agentState, showToast }) {
         <div style={{ padding: "16px 20px", borderBottom: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div className="smallcaps" style={{ color: "var(--accent)", fontSize: 9 }}>Pending approvals</div>
-            <div className="display" style={{ fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>0 awaiting your decision</div>
+            <div className="display" style={{ fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>
+              {pending.length === 0
+                ? "0 awaiting your decision"
+                : `${pending.length} awaiting your decision`}
+            </div>
           </div>
-          <span className="stamp" style={{ borderColor: "var(--ok)", color: "var(--ok)" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ok)" }}/>
-            CLEAR
-          </span>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <button
+              onClick={() => setShowQueueForm(true)}
+              style={{
+                padding: "8px 14px", border: "1.5px solid var(--ink)", background: "var(--paper-2)",
+                fontFamily: "var(--serif)", fontSize: 13, cursor: "pointer", color: "var(--ink)",
+              }}
+            >+ Simulate request</button>
+            <span className="stamp" style={{
+              borderColor: pending.length === 0 ? "var(--ok)" : "var(--accent)",
+              color:       pending.length === 0 ? "var(--ok)" : "var(--accent)",
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: pending.length === 0 ? "var(--ok)" : "var(--accent)" }}/>
+              {pending.length === 0 ? "CLEAR" : `${pending.length} PENDING`}
+            </span>
+          </div>
         </div>
 
-        <div style={{ padding: "60px 24px", textAlign: "center" }}>
-          <div className="hand" style={{ fontSize: 40, color: "var(--ok)", marginBottom: 12 }}>All clear ✓</div>
-          <div style={{ fontFamily: "var(--serif)", fontSize: 16, color: "var(--ink-3)", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-            No pending approvals right now. When your agent tries to spend above the ₳500 per-tx cap, the request will appear here.
+        {approvals.loading ? (
+          <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--ink-3)", fontFamily: "var(--serif)" }}>
+            Loading queue…
           </div>
-        </div>
+        ) : pending.length === 0 ? (
+          <div style={{ padding: "60px 24px", textAlign: "center" }}>
+            <div className="hand" style={{ fontSize: 40, color: "var(--ok)", marginBottom: 12 }}>All clear ✓</div>
+            <div style={{ fontFamily: "var(--serif)", fontSize: 16, color: "var(--ink-3)", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+              No pending approvals right now. When your agent tries to spend above the
+              {live ? ` ₳${fmtAda(ad.rules.perTxCapAda)} ` : " "}per-tx cap, the request will appear here.
+            </div>
+          </div>
+        ) : (
+          <div>
+            {pending.map((entry, i) => (
+              <ApprovalRow
+                key={entry.id}
+                entry={entry}
+                last={i === pending.length - 1}
+                onApprove={() => onApprove(entry)}
+                onReject={() => onReject(entry)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* History */}
+      {history.length > 0 && (
+        <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", marginBottom: 24 }}>
+          <div style={{ padding: "12px 18px", borderBottom: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="smallcaps" style={{ color: "var(--accent)", fontSize: 9 }}>Recent decisions</div>
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>{history.length} item{history.length === 1 ? "" : "s"}</span>
+          </div>
+          {history.map((entry, i) => (
+            <div key={entry.id} style={{
+              display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 14, alignItems: "center",
+              padding: "12px 18px", borderBottom: i < history.length - 1 ? "1px solid var(--paper-3)" : "none",
+            }}>
+              <span className="mono" style={{
+                fontSize: 9, padding: "3px 7px",
+                background: entry.status === "approved" ? "var(--ok)" : "var(--ink-4)",
+                color: "var(--paper)", letterSpacing: "0.12em",
+              }}>{entry.status.toUpperCase()}</span>
+              <div>
+                <div className="mono" style={{ fontSize: 11, color: "var(--ink)" }}>{shortenAddr(entry.toAddress)}</div>
+                <div style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>{entry.reason || "—"}</div>
+              </div>
+              <div className="display" style={{ fontSize: 16, color: "var(--ink)" }}>₳ {fmtAda(entry.ada)}</div>
+              <button onClick={() => onClear(entry)} title="Remove" style={{
+                background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-4)", fontSize: 18, lineHeight: 1, padding: 0,
+              }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Simulate-request modal */}
+      {showQueueForm && (
+        <QueueRequestModal
+          defaultPerTxCap={live ? ad.rules.perTxCapAda : 500}
+          onClose={() => setShowQueueForm(false)}
+          onSubmit={async (payload) => {
+            try {
+              await approvals.create(payload);
+              showToast(`Spend of ₳${fmtAda(payload.ada)} queued for owner approval.`);
+              setShowQueueForm(false);
+            } catch (err) { showToast(`Error: ${err.message}`); }
+          }}
+        />
+      )}
 
       {/* How to trigger & approve via SDK */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22 }}>
@@ -978,6 +1173,138 @@ await rejectSpend(wallet, queue[0].id);`}/>
         </div>
       </div>
     </div>
+  );
+}
+
+function ApprovalRow({ entry, last, onApprove, onReject }) {
+  const ageMin = Math.max(1, Math.floor((Date.now() - entry.requestedAt) / 60_000));
+  return (
+    <div style={{
+      display: "grid", gridTemplateColumns: "auto 1fr auto auto",
+      gap: 16, alignItems: "center",
+      padding: "18px 20px",
+      borderBottom: last ? "none" : "1px solid var(--paper-3)",
+    }}>
+      <div style={{
+        width: 44, height: 44, border: "1.5px solid var(--accent)",
+        background: "var(--paper-2)",
+        display: "grid", placeItems: "center",
+      }}>
+        <Icon.bell size={18} color="var(--accent)"/>
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginBottom: 2 }}>
+          <span className="display" style={{ fontSize: 20, color: "var(--ink)" }}>
+            ₳ {fmtAda(entry.ada)}
+          </span>
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+            → {shortenAddr(entry.toAddress)}
+          </span>
+        </div>
+        <div style={{
+          fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)",
+          lineHeight: 1.4, marginBottom: 4,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {entry.reason || <span style={{ color: "var(--ink-4)" }}>no reason provided</span>}
+        </div>
+        <div className="mono" style={{ fontSize: 10, color: "var(--ink-4)", letterSpacing: "0.06em" }}>
+          REQUESTED {ageMin}M AGO · ID {entry.id.slice(0, 8)}
+        </div>
+      </div>
+      <button
+        onClick={onReject}
+        style={{
+          padding: "8px 14px", border: "1.5px solid var(--ink)",
+          background: "var(--paper)", fontFamily: "var(--serif)", fontSize: 13,
+          cursor: "pointer", color: "var(--ink)",
+        }}
+      >Reject</button>
+      <button
+        onClick={onApprove}
+        style={{
+          padding: "8px 16px", border: "1.5px solid var(--ink)",
+          background: "var(--ok)", color: "var(--paper)",
+          fontFamily: "var(--serif)", fontSize: 13, cursor: "pointer",
+          boxShadow: "2px 2px 0 var(--ink)",
+        }}
+      >Approve</button>
+    </div>
+  );
+}
+
+function QueueRequestModal({ defaultPerTxCap, onClose, onSubmit }) {
+  const suggestedAda = Math.max(50, Math.round((defaultPerTxCap || 500) * 1.4));
+  const [toAddress, setToAddress] = useStateD("addr_test1qz0rxk3kxhg9p6jufv5w8ucz3kc9w8aqxhag7rmllz2lqujkv57hl3rxk7w4qx6xrpzzdz4kqdwh7s3cunucy0rfmxq49v8w8");
+  const [ada,       setAda]       = useStateD(String(suggestedAda));
+  const [reason,    setReason]    = useStateD("Pay invoice #42 — Acme Corp cloud bill");
+
+  function submit(e) {
+    e.preventDefault();
+    const num = Number(ada);
+    if (!toAddress.trim()) return;
+    if (!Number.isFinite(num) || num <= 0) return;
+    onSubmit({ toAddress: toAddress.trim(), ada: num, reason: reason.trim() });
+  }
+
+  return (
+    <Modal title="Queue an above-cap spend" onClose={onClose}>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <p style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, margin: 0 }}>
+          This simulates what your agent's SDK would do when a spend exceeds the per-tx cap.
+          The entry goes into the persistent queue and waits for owner co-signature.
+        </p>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span className="smallcaps" style={{ fontSize: 10, color: "var(--ink-3)" }}>Destination address</span>
+          <input
+            value={toAddress}
+            onChange={(e) => setToAddress(e.target.value)}
+            placeholder="addr_test1…"
+            className="mono"
+            style={{
+              padding: "10px 12px", border: "1.5px solid var(--ink)", background: "var(--paper-2)",
+              fontSize: 12, color: "var(--ink)",
+            }}
+          />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span className="smallcaps" style={{ fontSize: 10, color: "var(--ink-3)" }}>Amount (ADA)</span>
+          <input
+            type="number" min="0.1" step="0.1" value={ada}
+            onChange={(e) => setAda(e.target.value)}
+            className="mono"
+            style={{
+              padding: "10px 12px", border: "1.5px solid var(--ink)", background: "var(--paper-2)",
+              fontSize: 14, color: "var(--ink)",
+            }}
+          />
+          <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--ink-4)" }}>
+            Per-tx cap is ₳{fmtAda(defaultPerTxCap)} — anything above will queue here.
+          </span>
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span className="smallcaps" style={{ fontSize: 10, color: "var(--ink-3)" }}>Reason</span>
+          <input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="What is this spend for?"
+            style={{
+              padding: "10px 12px", border: "1.5px solid var(--ink)", background: "var(--paper-2)",
+              fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink)",
+            }}
+          />
+        </label>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 6 }}>
+          <button type="button" onClick={onClose} style={{
+            padding: "10px 18px", border: "1.5px solid var(--ink-4)", background: "var(--paper)",
+            fontFamily: "var(--serif)", fontSize: 14, cursor: "pointer", color: "var(--ink-3)",
+          }}>Cancel</button>
+          <button type="submit" className="ink-btn" style={{
+            height: 40, padding: "0 18px", fontSize: 14, boxShadow: "2px 2px 0 var(--ink)",
+          }}>Add to queue</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

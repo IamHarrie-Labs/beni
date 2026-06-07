@@ -4,6 +4,7 @@
   "description": "Beni — AI agent wallet guardrails on Cardano",
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.37.0"
+    "@anthropic-ai/sdk": "^0.37.0",
+    "@vercel/kv": "^3.0.0"
   }
 }

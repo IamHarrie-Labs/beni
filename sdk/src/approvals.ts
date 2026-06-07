@@ -25,13 +25,22 @@ type SerializedPendingSpend = Omit<PendingSpend, "lovelace" | "requestedAt"> & {
   requestedAt: string;
 };
 
-// ── Persistence (file-based for hackathon; swap for DB/localStorage in prod) ──
+// ── Persistence ───────────────────────────────────────────────────────────────
+// Two backends:
+//   1. Remote HTTP store — set BENI_APPROVALS_API to point at /api/approvals.
+//      The Vercel function persists via @vercel/kv if KV is configured.
+//      This is the production backend, shared with the web dashboard.
+//   2. File store        — local JSON file, used for offline dev and tests.
+//      Selected automatically when BENI_APPROVALS_API is not set.
+
+const APPROVALS_API = process.env.BENI_APPROVALS_API;
+const USE_REMOTE    = typeof APPROVALS_API === "string" && APPROVALS_API.length > 0;
 
 function storePath(wallet: BeniWallet): string {
   return `.beni-approvals-${wallet.scriptAddress.slice(-8)}.json`;
 }
 
-function loadQueue(wallet: BeniWallet): PendingSpend[] {
+function loadQueueFromFile(wallet: BeniWallet): PendingSpend[] {
   const path = storePath(wallet);
   if (!existsSync(path)) return [];
   const raw: SerializedPendingSpend[] = JSON.parse(readFileSync(path, "utf-8"));
@@ -42,13 +51,65 @@ function loadQueue(wallet: BeniWallet): PendingSpend[] {
   }));
 }
 
-function saveQueue(wallet: BeniWallet, queue: PendingSpend[]): void {
+function saveQueueToFile(wallet: BeniWallet, queue: PendingSpend[]): void {
   const serialized: SerializedPendingSpend[] = queue.map((p) => ({
     ...p,
     lovelace: p.lovelace.toString(),
     requestedAt: p.requestedAt.toISOString(),
   }));
   writeFileSync(storePath(wallet), JSON.stringify(serialized, null, 2));
+}
+
+// Remote entry shape (matches api/approvals.js)
+type RemoteEntry = {
+  id: string;
+  toAddress: string;
+  lovelace: string;
+  ada: number;
+  reason: string;
+  requestedAt: number;
+  status: "pending" | "approved" | "rejected";
+  txHash?: string;
+};
+
+function fromRemote(r: RemoteEntry): PendingSpend {
+  return {
+    id:          r.id,
+    toAddress:   r.toAddress,
+    lovelace:    BigInt(r.lovelace),
+    reason:      r.reason ?? "",
+    requestedAt: new Date(r.requestedAt),
+    status:      r.status,
+  };
+}
+
+async function loadQueue(wallet: BeniWallet): Promise<PendingSpend[]> {
+  if (!USE_REMOTE) return loadQueueFromFile(wallet);
+  const res = await fetch(APPROVALS_API as string);
+  if (!res.ok) throw new Error(`approvals API ${res.status}`);
+  const data: { all: RemoteEntry[] } = await res.json();
+  return (data.all ?? []).map(fromRemote);
+}
+
+async function postRemote(toAddress: string, lovelace: bigint, reason: string): Promise<PendingSpend> {
+  const ada = Number(lovelace) / 1_000_000;
+  const res = await fetch(APPROVALS_API as string, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ toAddress, lovelace: lovelace.toString(), ada, reason }),
+  });
+  if (!res.ok) throw new Error(`approvals API ${res.status}`);
+  const { entry } = (await res.json()) as { entry: RemoteEntry };
+  return fromRemote(entry);
+}
+
+async function patchRemote(id: string, status: "approved" | "rejected", txHash?: string): Promise<void> {
+  const res = await fetch(`${APPROVALS_API}?id=${encodeURIComponent(id)}`, {
+    method:  "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ status, ...(txHash ? { txHash } : {}) }),
+  });
+  if (!res.ok) throw new Error(`approvals API ${res.status}`);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -63,6 +124,9 @@ export async function queueSpend(
   lovelace: bigint,
   reason: string,
 ): Promise<PendingSpend> {
+  if (USE_REMOTE) {
+    return postRemote(toAddress, lovelace, reason);
+  }
   const pending: PendingSpend = {
     id: randomUUID(),
     toAddress,
@@ -72,9 +136,9 @@ export async function queueSpend(
     status: "pending",
   };
 
-  const queue = loadQueue(wallet);
+  const queue = loadQueueFromFile(wallet);
   queue.push(pending);
-  saveQueue(wallet, queue);
+  saveQueueToFile(wallet, queue);
 
   return pending;
 }
@@ -83,7 +147,8 @@ export async function queueSpend(
  * Returns all pending spend requests for this wallet.
  */
 export async function getPendingSpends(wallet: BeniWallet): Promise<PendingSpend[]> {
-  return loadQueue(wallet).filter((p) => p.status === "pending");
+  const queue = await loadQueue(wallet);
+  return queue.filter((p) => p.status === "pending");
 }
 
 /**
@@ -99,7 +164,7 @@ export async function approveSpend(
   wallet: BeniWallet,
   pendingId: string,
 ): Promise<string> {
-  const queue = loadQueue(wallet);
+  const queue = await loadQueue(wallet);
   const pending = queue.find((p) => p.id === pendingId && p.status === "pending");
   if (!pending) throw new Error(`No pending spend with id ${pendingId}`);
 
@@ -139,9 +204,13 @@ export async function approveSpend(
   const txSigned = await txSignBuilder.sign.withWallet().complete();
   const txHash = await txSigned.submit();
 
-  // Mark approved in queue
-  pending.status = "approved";
-  saveQueue(wallet, queue);
+  // Mark approved in the store
+  if (USE_REMOTE) {
+    await patchRemote(pendingId, "approved", txHash);
+  } else {
+    pending.status = "approved";
+    saveQueueToFile(wallet, queue);
+  }
 
   return txHash;
 }
@@ -150,10 +219,14 @@ export async function approveSpend(
  * Owner rejects a queued spend. No on-chain action — just marks the queue entry.
  */
 export async function rejectSpend(wallet: BeniWallet, pendingId: string): Promise<void> {
-  const queue = loadQueue(wallet);
+  if (USE_REMOTE) {
+    await patchRemote(pendingId, "rejected");
+    return;
+  }
+  const queue = loadQueueFromFile(wallet);
   const pending = queue.find((p) => p.id === pendingId);
   if (pending) {
     pending.status = "rejected";
-    saveQueue(wallet, queue);
+    saveQueueToFile(wallet, queue);
   }
 }
