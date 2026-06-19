@@ -52,7 +52,7 @@ function Hero({ setPage }) {
         </div>
 
         {/* Sub + CTAs row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 60, alignItems: "end", marginTop: 56 }}>
+        <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginTop: 56 }}>
           <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.45, margin: 0, maxWidth: 600, color: "var(--ink-2)" }}>
             AI agents are about to be in charge of your money. Beni is the
             <em style={{ color: "var(--ink)", fontStyle: "italic" }}> hard physical edge </em>
@@ -79,7 +79,7 @@ function Hero({ setPage }) {
 function HeroDiagram() {
   return (
     <div style={{ marginTop: 80, position: "relative" }}>
-      <div style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", padding: "44px 0", display: "grid", gridTemplateColumns: "1fr auto 1fr auto 1fr", gap: 24, alignItems: "center" }}>
+      <div className="rg-5" style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", padding: "44px 0" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <DiagramTile label="THE AGENT" hint="autonomous, fast, fallible">
             <Icon.ai size={60} sw={1.6}/>
@@ -154,8 +154,8 @@ function Problem() {
   return (
     <section style={{ padding: "140px 0 100px" }}>
       <div className="wide">
-        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.4fr", gap: 80, alignItems: "start" }}>
-          <div style={{ position: "sticky", top: 100 }}>
+        <div className="rg-2" style={{ "--rg-cols": "1.1fr 1.4fr", "--rg-gap": "80px" }}>
+          <div className="rg-sticky-off" style={{ position: "sticky", top: 100 }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One — The mess</span>
             {/* Reduced from 80px */}
             <h2 className="display" style={{ fontSize: 52, lineHeight: 0.96, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
@@ -213,7 +213,7 @@ function HowItWorks() {
   return (
     <section style={{ padding: "100px 0", background: "var(--ink)", color: "var(--paper)", borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)" }}>
       <div className="wide">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 60 }}>
+        <div className="rg-2" style={{ "--rg-cols": "1fr 1fr", "--rg-gap": "40px", "--rg-align": "end", marginBottom: 60 }}>
           <div>
             <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two — How</span>
             {/* Reduced from 96px */}
@@ -227,7 +227,7 @@ function HowItWorks() {
             or doesn't.
           </p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, background: "var(--paper)", border: "1.5px solid var(--paper)" }}>
+        <div className="rg-4" style={{ gap: 1, background: "var(--paper)", border: "1.5px solid var(--paper)" }}>
           {[
             { n: "01", t: "Agent builds the transaction", d: "Beni's SDK wraps your agent's wallet provider. The agent's code does not change." },
             { n: "02", t: "Rules evaluate on-chain", d: "An Aiken validator checks caps, whitelists, daily limits, and the thread-token signature." },
@@ -267,7 +267,7 @@ function Rules() {
   return (
     <section style={{ padding: "140px 0 100px" }}>
       <div className="wide">
-        <div style={{ marginBottom: 80, display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 60, alignItems: "end" }}>
+        <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginBottom: 80 }}>
           {/* Reduced from 120px */}
           <h2 className="display" style={{ fontSize: 74, lineHeight: 0.92, margin: 0, letterSpacing: "-0.025em" }}>
             Eight rules.<br/>
@@ -278,7 +278,7 @@ function Rules() {
             a one-bot trading account to a multi-team treasury vault.
           </p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, borderTop: "1.5px solid var(--ink)", borderLeft: "1.5px solid var(--ink)" }}>
+        <div className="rg-4" style={{ borderTop: "1.5px solid var(--ink)", borderLeft: "1.5px solid var(--ink)" }}>
           {items.map((x, i) => (
             <div key={i} style={{
               borderRight: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)",
@@ -321,7 +321,7 @@ function SdkSection({ setPage }) {
   return (
     <section style={{ padding: "120px 0", background: "var(--paper-2)", borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)" }}>
       <div className="wide">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 80, alignItems: "center" }}>
+        <div className="rg-2" style={{ "--rg-cols": "1fr 1.2fr", "--rg-gap": "80px", "--rg-align": "center" }}>
           <div>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three — For builders</span>
             {/* Reduced from 88px */}
@@ -335,7 +335,7 @@ function SdkSection({ setPage }) {
               like normal. The validator does the rest — on chain, with no off-chain
               service you have to trust or pay.
             </p>
-            <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap" }}>
               <button className="ink-btn" onClick={() => setPage("docs")}>Open the SDK docs <Icon.arrow size={16} color="var(--paper)"/></button>
               <button className="ink-btn ghost" onClick={() => window.open("https://github.com/beni-run/beni", "_blank")}><Icon.github size={16}/> Star on GitHub</button>
             </div>
@@ -404,8 +404,8 @@ function FAQ() {
   return (
     <section style={{ padding: "120px 0", borderTop: "1.5px solid var(--ink)" }}>
       <div className="wide">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 80 }}>
-          <div style={{ position: "sticky", top: 100, alignSelf: "start" }}>
+        <div className="rg-2" style={{ "--rg-cols": "1fr 1.6fr", "--rg-gap": "80px" }}>
+          <div className="rg-sticky-off" style={{ position: "sticky", top: 100, alignSelf: "start" }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four — Q&amp;A</span>
             {/* Reduced from 88px */}
             <h2 className="display" style={{ fontSize: 58, lineHeight: 0.94, margin: "16px 0 28px" }}>
@@ -450,7 +450,7 @@ function FinalCTA({ setPage }) {
   return (
     <section style={{ padding: "60px 0 100px" }}>
       <div className="wide">
-        <div style={{ background: "var(--ink)", color: "var(--paper)", padding: "100px 60px", position: "relative", overflow: "hidden", boxShadow: "10px 10px 0 0 var(--accent)" }}>
+        <div style={{ background: "var(--ink)", color: "var(--paper)", padding: "clamp(40px, 8vw, 100px) clamp(24px, 5vw, 60px)", position: "relative", overflow: "hidden", boxShadow: "10px 10px 0 0 var(--accent)" }}>
           <div style={{ position: "absolute", top: 40, right: 60, transform: "rotate(8deg)" }}>
             <Star size={48} color="var(--accent-3)"/>
           </div>

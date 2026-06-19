@@ -282,3 +282,43 @@ section { position: relative; }
 /* Hand-drawn arrow utility class - applied to SVGs */
 .ink-stroke { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 .ink-fill { fill: var(--ink); }
+
+/* ── Responsive layout ───────────────────────────────────────────────── */
+
+/* 2-column grid → stacks on mobile */
+.rg-2 {
+  display: grid;
+  grid-template-columns: var(--rg-cols, 1fr 1fr);
+  gap: var(--rg-gap, 60px);
+  align-items: var(--rg-align, start);
+}
+
+/* 4-column grid → 2-col tablet → 1-col mobile */
+.rg-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* 5-column hero diagram → horizontally scrollable on mobile */
+.rg-5 {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .wide { padding: 0 20px; }
+  .rg-2 { grid-template-columns: 1fr; gap: 36px; }
+  .rg-4 { grid-template-columns: repeat(2, 1fr); }
+  .rg-hide-mobile { display: none !important; }
+  .rg-sticky-off { position: static !important; }
+}
+
+@media (max-width: 560px) {
+  .wide { padding: 0 16px; }
+  .rg-4 { grid-template-columns: 1fr; }
+  .rg-5 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ink-btn { font-size: 15px; padding: 0 18px; height: 42px; }
+  section { padding-top: 60px !important; padding-bottom: 60px !important; }
+}
