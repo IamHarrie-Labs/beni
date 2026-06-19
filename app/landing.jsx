@@ -145,26 +145,7 @@ function Hexagon() {
   );
 }
 
-/* =================================================================== */
-/*  MARQUEE                                                             */
-/* =================================================================== */
-function Marquee() {
-  const items = ["Cardano Foundation", "IOG", "MeshJS", "Aiken", "Blockfrost", "NMKR", "Genius Yield", "SundaeSwap", "Maestro", "Liqwid"];
-  return (
-    <section style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", background: "var(--paper-2)", padding: "22px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-        <span className="smallcaps" style={{ paddingLeft: 32, whiteSpace: "nowrap" }}>Trusted by builders at →</span>
-        <div style={{ flex: 1, overflow: "hidden", maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
-          <div style={{ display: "flex", gap: 56, animation: "scroll-x 50s linear infinite", width: "max-content" }}>
-            {[...items, ...items].map((x, i) => (
-              <span key={i} className="display" style={{ fontSize: 28, color: "var(--ink-2)" }}>{x}<span style={{ color: "var(--accent)" }}>.</span></span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
+/* Marquee removed — no real partnerships to list yet */
 
 /* =================================================================== */
 /*  PROBLEM                                                             */
@@ -193,9 +174,9 @@ function Problem() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            <StatPanel n="$2.3B" lead="lost to wallet drains in 2025" tail="DeFi Llama / Chainalysis" rot={-0.4}/>
-            <StatPanel n="73%" lead={<>of agent operators report a <em>runaway-spend event</em></>} tail="Beni operator survey · n=412" rot={0.6}/>
-            <StatPanel n="0" lead="production-grade on-chain enforcement layers for agentic finance" tail="until us" accent rot={-0.3}/>
+            <StatPanel n="5" lead="guardrails enforced directly on the Cardano ledger" tail="per-tx cap · daily limit · whitelist · freeze · thread token" rot={-0.4}/>
+            <StatPanel n="0" lead="off-chain services required to enforce the rules" tail="the validator runs on Cardano, not on a server you have to trust" rot={0.6}/>
+            <StatPanel n="1" lead="block to freeze a rogue agent wallet" tail="one signed transaction, one block finality" accent rot={-0.3}/>
           </div>
         </div>
       </div>
@@ -359,10 +340,10 @@ function SdkSection({ setPage }) {
               <button className="ink-btn ghost" onClick={() => window.open("https://github.com/beni-run/beni", "_blank")}><Icon.github size={16}/> Star on GitHub</button>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <span className="hand" style={{ fontSize: 26, color: "var(--accent)" }}>also available in</span>
+              <span className="hand" style={{ fontSize: 26, color: "var(--accent)" }}>built with</span>
               <span className="stamp">AIKEN</span>
               <span className="stamp">TYPESCRIPT</span>
-              <span className="stamp">REST + WS</span>
+              <span className="stamp">BLOCKFROST</span>
             </div>
           </div>
           <CodeCard/>
@@ -384,64 +365,28 @@ function CodeCard() {
         margin: 0, padding: "28px 32px", overflow: "auto", background: "var(--paper)",
         fontFamily: "var(--mono)", fontSize: 14, lineHeight: 1.75, color: "var(--ink)",
       }}>
-<code>{`// Wrap any wallet — the agent doesn't change.
-`}<span style={{ color: "var(--accent-2)" }}>import</span>{` { Beni, rule } `}<span style={{ color: "var(--accent-2)" }}>from</span>{` `}<span style={{ color: "var(--accent)" }}>"@beni/sdk"</span>{`
-`}<span style={{ color: "var(--accent-2)" }}>import</span>{` { Lucid } `}<span style={{ color: "var(--accent-2)" }}>from</span>{` `}<span style={{ color: "var(--accent)" }}>"lucid-cardano"</span>{`
+<code>{`// Deploy a guarded agent wallet on-chain.
+`}<span style={{ color: "var(--accent-2)" }}>import</span>{` { makeLucid, createAgentWallet, agentSpend, freezeWallet } `}<span style={{ color: "var(--accent-2)" }}>from</span>{` `}<span style={{ color: "var(--accent)" }}>"beni-sdk"</span>{`
 
-`}<span style={{ color: "var(--accent-2)" }}>const</span>{` wallet = `}<span style={{ color: "var(--accent-2)" }}>await</span>{` Lucid.new(provider, `}<span style={{ color: "var(--accent)" }}>"Mainnet"</span>{`)
+`}<span style={{ color: "var(--accent-2)" }}>const</span>{` lucid = `}<span style={{ color: "var(--accent-2)" }}>await</span>{` makeLucid({ network: `}<span style={{ color: "var(--accent)" }}>"Preview"</span>{`, blockfrostApiKey })
+lucid.selectWalletFromPrivateKey(agentPrivateKey)
 
-`}<span style={{ color: "var(--accent-2)" }}>const</span>{` guarded = `}<span style={{ color: "var(--accent-2)" }}>await</span>{` Beni.wrap(wallet, {
-  agentId: `}<span style={{ color: "var(--accent)" }}>"atlas-trader-v2"</span>{`,
-  rules: [
-    rule.perTxCap({ lovelace: `}<span style={{ color: "var(--accent-2)" }}>500_000_000n</span>{` }),
-    rule.dailyCap({ lovelace: `}<span style={{ color: "var(--accent-2)" }}>2_500_000_000n</span>{` }),
-    rule.whitelist([`}<span style={{ color: "var(--accent)" }}>"addr1...m7p2"</span>{`]),
-    rule.requireApproval({ above: `}<span style={{ color: "var(--accent-2)" }}>250_000_000n</span>{` }),
-  ],
+`}<span style={{ color: "var(--accent-2)" }}>const</span>{` wallet = `}<span style={{ color: "var(--accent-2)" }}>await</span>{` createAgentWallet(lucid, {
+  perTxCapLovelace:  `}<span style={{ color: "var(--accent-2)" }}>2_000_000n</span>{`,   `}<span style={{ color: "var(--ink-3)" }}>// 2 ADA per-tx cap</span>{`
+  dailyCapLovelace:  `}<span style={{ color: "var(--accent-2)" }}>10_000_000n</span>{`,  `}<span style={{ color: "var(--ink-3)" }}>// 10 ADA daily limit</span>{`
+  allowedCredentialHashes: [],           `}<span style={{ color: "var(--ink-3)" }}>// whitelist</span>{`
+  ownerPkh: ownerPubKeyHash,
+  isFrozen: `}<span style={{ color: "var(--accent-2)" }}>false</span>{`,
 })
 
-// Use it like any wallet. Rules enforce themselves.
-`}<span style={{ color: "var(--accent-2)" }}>await</span>{` guarded.send({ to, lovelace: `}<span style={{ color: "var(--accent-2)" }}>120_000_000n</span>{` })`}</code>
+`}<span style={{ color: "var(--accent-2)" }}>await</span>{` agentSpend(lucid, wallet, `}<span style={{ color: "var(--accent)" }}>"addr_test1..."</span>{`, `}<span style={{ color: "var(--accent-2)" }}>1_000_000n</span>{`)
+`}<span style={{ color: "var(--accent-2)" }}>await</span>{` freezeWallet(lucid, wallet)   `}<span style={{ color: "var(--ink-3)" }}>// one call, one block</span></code>
       </pre>
     </div>
   );
 }
 
-/* =================================================================== */
-/*  TESTIMONIAL                                                         */
-/* =================================================================== */
-function Testimonial() {
-  return (
-    <section style={{ padding: "120px 0", position: "relative" }}>
-      <div className="wide">
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 60, alignItems: "center" }}>
-          <div className="display" style={{ fontSize: 200, color: "var(--accent)", lineHeight: 0.6 }}>"</div>
-          <div>
-            {/* Reduced from 56px */}
-            <p className="display" style={{ fontSize: 38, lineHeight: 1.08, letterSpacing: "-0.02em", margin: 0 }}>
-              We ran an agent for six months without rails and lost sleep every night.
-              With Beni the agent does what it's good at, and the chain{" "}
-              <span style={{ position: "relative", display: "inline-block", color: "var(--accent)" }}>
-                physically can't
-                <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.15em" }}>
-                  <ScribbleUnder thick={3} color="var(--accent)"/>
-                </span>
-              </span>{" "}
-              do anything else.
-            </p>
-            <div style={{ marginTop: 36, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--paper-3)", border: "1.5px solid var(--ink)", display: "grid", placeItems: "center", fontFamily: "var(--display)", fontSize: 24 }}>LO</div>
-              <div>
-                <div style={{ fontFamily: "var(--display)", fontSize: 22 }}>Lena Okafor</div>
-                <div className="smallcaps" style={{ color: "var(--ink-3)" }}>CTO · Tessera Capital</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
+/* Testimonial removed — no real users yet */
 
 /* =================================================================== */
 /*  FAQ                                                                 */
@@ -453,7 +398,7 @@ function FAQ() {
     { q: "What happens during an emergency freeze?", a: "A single signed action burns the agent's spend permission until you re-issue it. The freeze takes one block to finalize and cannot be bypassed off-chain." },
     { q: "Which agents and frameworks are supported?", a: "Anything that constructs Cardano transactions: LangChain, AutoGen, custom Python or TypeScript bots, internal trading services. Beni wraps the wallet — not the agent." },
     { q: "How is this different from a multisig?", a: "Multisigs gate signatures. Beni gates behavior. Per-tx caps, rolling budgets, whitelists, and approval thresholds are policies a multisig cannot express." },
-    { q: "Is the contract audited?", a: "Yes — full audit by Tweag Labs (Q1 2026). Report and reproduction artifacts are public on GitHub." },
+    { q: "Is the contract audited?", a: "Not yet. Beni is a hackathon project built for Gimbalabs Piece of Pie 2026. A formal audit is planned before any mainnet deployment." },
   ];
   const [open, setOpen] = useStateL(0);
   return (
@@ -469,7 +414,7 @@ function FAQ() {
             <p style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 360 }}>
               For everything else the docs go deeper. Or write us a letter.
             </p>
-            <span className="hand" style={{ fontSize: 26, color: "var(--accent)", display: "inline-block", marginTop: 18 }}>hello@beni.run</span>
+            <a href="https://github.com/IamHarrie-Labs/beni" target="_blank" rel="noreferrer" className="hand" style={{ fontSize: 26, color: "var(--accent)", display: "inline-block", marginTop: 18, textDecoration: "none" }}>GitHub ↗</a>
           </div>
           <div style={{ borderTop: "1.5px solid var(--ink)" }}>
             {items.map((it, i) => (
@@ -529,9 +474,9 @@ function FinalCTA({ setPage }) {
             <button
               className="ink-btn"
               style={{ background: "transparent", color: "var(--paper)", borderColor: "var(--paper)", boxShadow: "3px 3px 0 var(--accent)" }}
-              onClick={() => window.open("mailto:hello@beni.run?subject=Demo%20request%20from%20beni.run&body=Hi%2C%20I%27d%20love%20a%2020-minute%20demo%20of%20Beni%20for%20AI%20agent%20wallets.%20Here%27s%20a%20bit%20about%20my%20use%20case%3A", "_blank")}
+              onClick={() => window.open("https://github.com/IamHarrie-Labs/beni", "_blank")}
             >
-              Book a 20-min demo
+              View on GitHub
             </button>
           </div>
         </div>
@@ -547,12 +492,10 @@ function Landing({ setPage }) {
   return (
     <div className="fade-in" data-screen-label="01 Landing">
       <Hero setPage={setPage}/>
-      <Marquee/>
       <Problem/>
       <HowItWorks/>
       <Rules/>
       <SdkSection setPage={setPage}/>
-      <Testimonial/>
       <FAQ/>
       <FinalCTA setPage={setPage}/>
     </div>
