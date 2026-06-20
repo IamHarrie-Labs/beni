@@ -65,80 +65,8 @@ function Hero({ setPage }) {
             </button>
           </div>
         </div>
-
-        {/* Diagrammatic flow ribbon */}
-        <HeroDiagram/>
       </div>
     </section>
-  );
-}
-
-function HeroDiagram() {
-  return (
-    <div style={{ marginTop: 80, position: "relative" }}>
-      <div className="rg-5" style={{ borderTop: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", padding: "44px 0" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <DiagramTile label="THE AGENT" hint="autonomous, fast, fallible">
-            <Icon.ai size={60} sw={1.6}/>
-          </DiagramTile>
-          <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>spends without asking</span>
-        </div>
-        <div style={{ transform: "translateY(-30px)" }}>
-          <HandArrow w={100} h={40} dir="right"/>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <DiagramTile primary label="BENI" hint="rules, on chain">
-            <BeniMark size={80} color="var(--paper)"/>
-          </DiagramTile>
-          <span className="hand" style={{ fontSize: 24, color: "var(--accent)" }}>checks every move</span>
-        </div>
-        <div style={{ transform: "translateY(-30px)" }}>
-          <HandArrow w={100} h={40} dir="right"/>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <DiagramTile label="CARDANO" hint="settles or doesn't">
-            <Hexagon/>
-          </DiagramTile>
-          <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>or refuses to settle</span>
-        </div>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.16em", textTransform: "uppercase" }}>
-        <span>Fig. 01 · the three actors</span>
-        <span>nothing else stands between an agent and your wallet.</span>
-      </div>
-    </div>
-  );
-}
-
-function DiagramTile({ children, label, hint, primary }) {
-  return (
-    <div style={{
-      width: 200, height: 140,
-      border: "1.5px solid var(--ink)",
-      background: primary ? "var(--ink)" : "var(--paper)",
-      color: primary ? "var(--paper)" : "var(--ink)",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
-      position: "relative",
-      boxShadow: "4px 4px 0 0 var(--ink)",
-    }}>
-      <div style={{ flex: 1, display: "grid", placeItems: "center" }}>{children}</div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 12px", borderTop: "1.5px solid " + (primary ? "var(--paper)" : "var(--ink)"), fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.16em", display: "flex", justifyContent: "space-between" }}>
-        <span>{label}</span>
-        <span style={{ opacity: 0.65, textTransform: "lowercase", letterSpacing: 0 }}>{hint}</span>
-      </div>
-    </div>
-  );
-}
-
-function Hexagon() {
-  return (
-    <svg viewBox="0 0 64 64" width={60} height={60}>
-      <g filter="url(#wobble)" stroke="var(--ink)" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M32 6 L54 18 V46 L32 58 L10 46 V18 Z"/>
-        <path d="M32 18 L44 25 V41 L32 48 L20 41 V25 Z"/>
-        <circle cx="32" cy="33" r="3"/>
-      </g>
-    </svg>
   );
 }
 
