@@ -331,7 +331,7 @@ function DocsPage() {
         <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 16 }}>Reference</div>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10, fontFamily: "var(--serif)", fontSize: 14 }}>
           <li>
-            <button onClick={() => window.open("https://github.com/beni-run/beni", "_blank")}
+            <button onClick={() => window.open("https://github.com/IamHarrie-Labs/beni", "_blank")}
               style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "var(--ink)", fontFamily: "var(--serif)", fontSize: 14, padding: 0 }}>
               <Icon.github size={14}/> Source on GitHub
             </button>

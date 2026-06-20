@@ -231,7 +231,7 @@ function HowItWorks() {
           {[
             { n: "01", t: "Agent builds the transaction", d: "Beni's SDK wraps your agent's wallet provider. The agent's code does not change." },
             { n: "02", t: "Rules evaluate on-chain", d: "An Aiken validator checks caps, whitelists, daily limits, and the thread-token signature." },
-            { n: "03", t: "Humans gate the edge cases", d: "Anything above your threshold pauses for review — dashboard, webhook, or signed approval." },
+            { n: "03", t: "Humans gate the edge cases", d: "Anything above your threshold pauses in the approvals queue for a signed owner approval." },
             { n: "04", t: "Settle, or revert", d: "Cardano either accepts the whole thing, or rejects it. No half-baked state to clean up." },
           ].map(s => (
             <div key={s.n} style={{ background: "var(--ink)", padding: "32px 28px", display: "flex", flexDirection: "column", gap: 16, minHeight: 280 }}>
@@ -255,14 +255,12 @@ function HowItWorks() {
 /* =================================================================== */
 function Rules() {
   const items = [
-    { n: "I.",    t: "A ceiling on every spend",     d: "Set the maximum size of any single transaction. The agent physically cannot exceed it.",  doodle: "cap" },
-    { n: "II.",   t: "A rolling daily budget",        d: "A smooth, time-windowed allowance. No end-of-day cliff, no off-chain timer to trust.",   doodle: "clock" },
-    { n: "III.",  t: "Trusted addresses bypass review", d: "Pre-approve who the agent can pay freely. Everything else stops at the gate.",          doodle: "list" },
-    { n: "IV.",   t: "Human-in-the-loop approvals",  d: "Anything above your threshold pauses for your signature. Approve in two seconds.",         doodle: "hand" },
-    { n: "V.",    t: "Emergency freeze",              d: "One click. The thread token gets revoked. Every outbound transaction halts within a block.", doodle: "freeze" },
-    { n: "VI.",   t: "Live monitoring",               d: "Watch every decision your validator makes, in real time. Subscribe to a webhook, or just look.", doodle: "eye" },
-    { n: "VII.",  t: "A chatbot that knows your rules", d: "Ask Beni — in English — why something was approved, blocked, or queued. It reads the chain.", doodle: "chat" },
-    { n: "VIII.", t: "Thread-token integrity",        d: "A non-fungible thread token anchors every policy update. Tampering is provably detectable.", doodle: "shield" },
+    { n: "I.",   t: "A ceiling on every spend",         d: "Set the maximum size of any single transaction. The agent cannot exceed it.",                 doodle: "cap" },
+    { n: "II.",  t: "A rolling daily budget",            d: "A time-windowed allowance tracked on-chain. No end-of-day cliff, no off-chain timer to trust.", doodle: "clock" },
+    { n: "III.", t: "Trusted addresses bypass review",   d: "Pre-approve who the agent can pay freely. Everything else stops at the gate.",                 doodle: "list" },
+    { n: "IV.",  t: "Human-in-the-loop approvals",       d: "Anything above your threshold pauses for your signature before it can settle.",               doodle: "hand" },
+    { n: "V.",   t: "Emergency freeze",                  d: "One owner action halts every outbound transaction within a block.",                           doodle: "freeze" },
+    { n: "VI.",  t: "Thread-token integrity",            d: "A non-fungible thread token anchors the wallet's state so a forged datum can't slip in.",      doodle: "shield" },
   ];
   return (
     <section style={{ padding: "140px 0 100px" }}>
@@ -270,12 +268,13 @@ function Rules() {
         <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginBottom: 80 }}>
           {/* Reduced from 120px */}
           <h2 className="display" style={{ fontSize: 74, lineHeight: 0.92, margin: 0, letterSpacing: "-0.025em" }}>
-            Eight rules.<br/>
-            <span style={{ color: "var(--accent)" }}>Endless</span> combinations.
+            Five guardrails,<br/>
+            <span style={{ color: "var(--accent)" }}>one</span> thread token.
           </h2>
           <p style={{ fontSize: 19, lineHeight: 1.5, color: "var(--ink-2)" }}>
-            A small kit of primitives. Compose them into any policy — from
-            a one-bot trading account to a multi-team treasury vault.
+            A small kit of rules, all enforced by the Cardano ledger. Compose them
+            into any policy — from a single trading bot to a shared treasury.
+            A live dashboard and an AI assistant sit on top.
           </p>
         </div>
         <div className="rg-4" style={{ borderTop: "1.5px solid var(--ink)", borderLeft: "1.5px solid var(--ink)" }}>
@@ -326,18 +325,18 @@ function SdkSection({ setPage }) {
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three — For builders</span>
             {/* Reduced from 88px */}
             <h2 className="display" style={{ fontSize: 58, lineHeight: 0.94, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
-              Three lines.<br/>
-              That's the<br/>
-              whole integration.
+              A few lines<br/>
+              to deploy a<br/>
+              guarded wallet.
             </h2>
             <p style={{ fontSize: 18, lineHeight: 1.5, color: "var(--ink-2)", maxWidth: 460, marginBottom: 28 }}>
-              Wrap any Cardano wallet provider with a list of rules. Send transactions
-              like normal. The validator does the rest — on chain, with no off-chain
-              service you have to trust or pay.
+              Set your rules, create the wallet on-chain, and let the agent spend
+              through it. The Aiken validator does the enforcing — there's no
+              service in the middle to trust or pay.
             </p>
             <div style={{ display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap" }}>
               <button className="ink-btn" onClick={() => setPage("docs")}>Open the SDK docs <Icon.arrow size={16} color="var(--paper)"/></button>
-              <button className="ink-btn ghost" onClick={() => window.open("https://github.com/beni-run/beni", "_blank")}><Icon.github size={16}/> Star on GitHub</button>
+              <button className="ink-btn ghost" onClick={() => window.open("https://github.com/IamHarrie-Labs/beni", "_blank")}><Icon.github size={16}/> Star on GitHub</button>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <span className="hand" style={{ fontSize: 26, color: "var(--accent)" }}>built with</span>
@@ -464,8 +463,8 @@ function FinalCTA({ setPage }) {
             agents <span style={{ color: "var(--accent)" }}>a leash</span>.
           </h2>
           <p style={{ fontSize: 20, lineHeight: 1.5, maxWidth: 560, marginTop: 32, color: "var(--paper-3)" }}>
-            Free during the developer preview. Mainnet contracts.
-            No off-chain custody. <span className="hand" style={{ fontSize: 28, color: "var(--accent-3)" }}>(seriously, none.)</span>
+            A hackathon project, live on Cardano Preview testnet.
+            Beni never takes custody. <span className="hand" style={{ fontSize: 28, color: "var(--accent-3)" }}>(your keys stay yours.)</span>
           </p>
           <div style={{ marginTop: 40, display: "flex", gap: 14, flexWrap: "wrap" }}>
             <button className="ink-btn accent" onClick={() => setPage("dashboard")}>
