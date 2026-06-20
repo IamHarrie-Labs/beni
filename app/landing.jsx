@@ -12,7 +12,7 @@ function Hero({ setPage }) {
         {/* Top label row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
           <div className="smallcaps" style={{ color: "var(--accent)" }}>
-            Beni — Issue 04 — May 2026
+            Beni · Issue 04 · May 2026
           </div>
           <div className="smallcaps" style={{ color: "var(--ink-3)" }}>
             A safety layer for autonomous AI wallets
@@ -27,16 +27,13 @@ function Hero({ setPage }) {
             letterSpacing: "-0.025em",
             margin: 0,
           }}>
-            Software<br/>
-            should<br/>
-            know <span style={{ position: "relative", display: "inline-block" }}>
-              when
+            Your AI agent<br/>
+            <span style={{ position: "relative", display: "inline-block", color: "var(--accent)" }}>
+              can't
               <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.18em" }}>
                 <ScribbleUnder width="100%" thick={5} color="var(--accent)"/>
               </span>
-            </span>
-            <br/>
-            <span style={{ color: "var(--accent)" }}>to stop.</span>
+            </span> overspend.
           </h1>
 
           {/* Floating doodles */}
@@ -54,10 +51,9 @@ function Hero({ setPage }) {
         {/* Sub + CTAs row */}
         <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginTop: 56 }}>
           <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.45, margin: 0, maxWidth: 600, color: "var(--ink-2)" }}>
-            AI agents are about to be in charge of your money. Beni is the
-            <em style={{ color: "var(--ink)", fontStyle: "italic" }}> hard physical edge </em>
-            of what they're allowed to do — written as Cardano smart contracts,
-            not as a polite suggestion.
+            Beni gives AI agents real wallets with spending limits
+            <em style={{ color: "var(--ink)", fontStyle: "italic" }}> enforced by the Cardano ledger</em>,
+            not by trusting the app to behave.
           </p>
           <div style={{ display: "flex", gap: 14, justifyContent: "end", flexWrap: "wrap" }}>
             <button className="ink-btn" onClick={() => setPage("dashboard")}>
@@ -106,7 +102,7 @@ function HeroDiagram() {
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.16em", textTransform: "uppercase" }}>
-        <span>Fig. 01 — the three actors</span>
+        <span>Fig. 01 · the three actors</span>
         <span>nothing else stands between an agent and your wallet.</span>
       </div>
     </div>
@@ -156,7 +152,7 @@ function Problem() {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1.1fr 1.4fr", "--rg-gap": "80px" }}>
           <div className="rg-sticky-off" style={{ position: "sticky", top: 100 }}>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One — The mess</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One · The mess</span>
             {/* Reduced from 80px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 52px)", lineHeight: 0.96, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
               AI agents<br/>
@@ -165,7 +161,7 @@ function Problem() {
               can stop them.
             </h2>
             <p style={{ fontSize: 19, lineHeight: 1.5, maxWidth: 480, color: "var(--ink-2)" }}>
-              Autonomous agents already trade, pay, and route funds — usually unsupervised.
+              Autonomous agents already trade, pay, and route funds, usually unsupervised.
               When the model hallucinates, or a prompt gets exploited, or a key leaks,
               there is no enforced ceiling between the agent and your treasury.
             </p>
@@ -200,7 +196,7 @@ function StatPanel({ n, lead, tail, accent, rot = 0 }) {
       }}>{n}</div>
       <div>
         <div style={{ fontSize: 24, lineHeight: 1.25, color: "var(--ink)" }}>{lead}</div>
-        <div className="smallcaps" style={{ marginTop: 12, color: "var(--ink-3)" }}>— {tail}</div>
+        <div className="smallcaps" style={{ marginTop: 12, color: "var(--ink-3)" }}>· {tail}</div>
       </div>
     </div>
   );
@@ -215,7 +211,7 @@ function HowItWorks() {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1fr 1fr", "--rg-gap": "40px", "--rg-align": "end", marginBottom: 60 }}>
           <div>
-            <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two — How</span>
+            <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two · How</span>
             {/* Reduced from 96px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 62px)", lineHeight: 0.94, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
               Every transaction<br/>passes through Beni.
@@ -223,8 +219,8 @@ function HowItWorks() {
           </div>
           <p style={{ fontFamily: "var(--serif)", fontSize: 19, lineHeight: 1.5, maxWidth: 420, color: "var(--paper)" }}>
             Your agent signs as usual. <em>Our validator</em> looks at the
-            transaction, checks it against your rules, and lets it through —
-            or doesn't.
+            transaction, checks it against your rules, and either lets it
+            through or it doesn't.
           </p>
         </div>
         <div className="rg-4" style={{ gap: 1, background: "var(--paper)", border: "1.5px solid var(--paper)" }}>
@@ -273,7 +269,7 @@ function Rules() {
           </h2>
           <p style={{ fontSize: 19, lineHeight: 1.5, color: "var(--ink-2)" }}>
             A small kit of rules, all enforced by the Cardano ledger. Compose them
-            into any policy — from a single trading bot to a shared treasury.
+            into any policy, from a single trading bot to a shared treasury.
             A live dashboard and an AI assistant sit on top.
           </p>
         </div>
@@ -322,7 +318,7 @@ function SdkSection({ setPage }) {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1fr 1.2fr", "--rg-gap": "80px", "--rg-align": "center" }}>
           <div>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three — For builders</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three · For builders</span>
             {/* Reduced from 88px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 58px)", lineHeight: 0.94, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
               A few lines<br/>
@@ -331,7 +327,7 @@ function SdkSection({ setPage }) {
             </h2>
             <p style={{ fontSize: 18, lineHeight: 1.5, color: "var(--ink-2)", maxWidth: 460, marginBottom: 28 }}>
               Set your rules, create the wallet on-chain, and let the agent spend
-              through it. The Aiken validator does the enforcing — there's no
+              through it. The Aiken validator does the enforcing, so there's no
               service in the middle to trust or pay.
             </p>
             <div style={{ display: "flex", gap: 12, marginBottom: 36, flexWrap: "wrap" }}>
@@ -392,10 +388,10 @@ lucid.selectWalletFromPrivateKey(agentPrivateKey)
 /* =================================================================== */
 function FAQ({ setPage }) {
   const items = [
-    { q: "Where do the rules actually run?", a: "Inside an Aiken validator on Cardano. Beni's off-chain services help you author and observe — but enforcement is on-chain. No off-chain dependency can override a deployed cap." },
+    { q: "Where do the rules actually run?", a: "Inside an Aiken validator on Cardano. Beni's off-chain services help you author and observe, but enforcement happens on-chain. No off-chain dependency can override a deployed cap." },
     { q: "Does Beni hold my funds?", a: "No. Beni never takes custody. Your wallet still signs every transaction; the validator simply refuses to settle anything that violates your rules." },
     { q: "What happens during an emergency freeze?", a: "A single signed action burns the agent's spend permission until you re-issue it. The freeze takes one block to finalize and cannot be bypassed off-chain." },
-    { q: "Which agents and frameworks are supported?", a: "Anything that constructs Cardano transactions: LangChain, AutoGen, custom Python or TypeScript bots, internal trading services. Beni wraps the wallet — not the agent." },
+    { q: "Which agents and frameworks are supported?", a: "Anything that constructs Cardano transactions: LangChain, AutoGen, custom Python or TypeScript bots, internal trading services. Beni wraps the wallet, not the agent." },
     { q: "How is this different from a multisig?", a: "Multisigs gate signatures. Beni gates behavior. Per-tx caps, rolling budgets, whitelists, and approval thresholds are policies a multisig cannot express." },
     { q: "Is the contract audited?", a: "Not yet. Beni is a hackathon project built for Gimbalabs Piece of Pie 2026. A formal audit is planned before any mainnet deployment." },
   ];
@@ -405,7 +401,7 @@ function FAQ({ setPage }) {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1fr 1.6fr", "--rg-gap": "80px" }}>
           <div className="rg-sticky-off" style={{ position: "sticky", top: 100, alignSelf: "start" }}>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four — Q&amp;A</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four · Q&amp;A</span>
             {/* Reduced from 88px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 58px)", lineHeight: 0.94, margin: "16px 0 28px" }}>
               Questions,<br/>answered.
