@@ -642,10 +642,12 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
           </div>
         </div>
         <div style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: 6 }}>
-          <div className="smallcaps" style={{ color: "var(--ink-3)", fontSize: 9 }}>Validator latency</div>
-          <div className="display" style={{ fontSize: 40, lineHeight: 1 }}>28ms</div>
+          <div className="smallcaps" style={{ color: "var(--ink-3)", fontSize: 9 }}>Per-tx cap</div>
+          <div className="display" style={{ fontSize: 40, lineHeight: 1, color: rules?.perTxCapAda != null ? "var(--ink)" : "var(--ink-4)" }}>
+            {rules?.perTxCapAda != null ? `₳ ${fmtAda(rules.perTxCapAda)}` : "·"}
+          </div>
           <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)" }}>
-            {ad?.funded ? "p95: 41ms · on-chain healthy" : "will measure after first spend"}
+            {ad?.funded ? "max per single spend" : "deploy an agent to begin"}
           </div>
         </div>
       </div>

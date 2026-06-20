@@ -100,7 +100,7 @@ function ContractAnatomy() {
         <div style={{ textAlign: "center", marginBottom: 64 }}>
           <span className="smallcaps" style={{ color: "var(--accent)" }}>II. The validator, opened up</span>
           <h2 className="display" style={{ fontSize: 52, lineHeight: 0.95, margin: "12px 0 0", letterSpacing: "-0.02em" }}>
-            What happens in <span style={{ color: "var(--accent)" }}>28ms</span>.
+            Every spend, checked <span style={{ color: "var(--accent)" }}>four ways</span>.
           </h2>
         </div>
 
@@ -141,14 +141,14 @@ function ContractAnatomy() {
             <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>The pipeline</div>
             <div className="display" style={{ fontSize: 28, marginBottom: 24, lineHeight: 1.1 }}>Step by step.</div>
             {[
-              { s: "Inputs gathered", d: "agent UTxO + datum + thread token", t: "0ms" },
-              { s: "Cap checks", d: "per_tx_cap, daily_cap", t: "4ms" },
-              { s: "Whitelist scan", d: "12 addresses · bloom filter", t: "9ms" },
-              { s: "Approval token check", d: "ed25519 signature verify", t: "16ms" },
-              { s: "Freeze guard", d: "datum.frozen ≟ False", t: "22ms" },
-              { s: "Accepted, or rejected", d: "atomic, on chain", t: "28ms" },
+              { s: "Inputs gathered", d: "agent UTxO + datum + thread token" },
+              { s: "Cap checks", d: "per_tx_cap and daily_cap" },
+              { s: "Whitelist check", d: "recipient in allowed_addresses" },
+              { s: "Approval path", d: "owner signature for above-cap spends" },
+              { s: "Freeze guard", d: "datum.frozen must be false" },
+              { s: "Accepted, or rejected", d: "atomically, on chain" },
             ].map((step, i, arr) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr auto", gap: 14, alignItems: "center", paddingBottom: i < arr.length - 1 ? 14 : 0, marginBottom: i < arr.length - 1 ? 14 : 0, borderBottom: i < arr.length - 1 ? "1.5px solid var(--paper-3)" : 0 }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr", gap: 14, alignItems: "center", paddingBottom: i < arr.length - 1 ? 14 : 0, marginBottom: i < arr.length - 1 ? 14 : 0, borderBottom: i < arr.length - 1 ? "1.5px solid var(--paper-3)" : 0 }}>
                 <div style={{
                   width: 28, height: 28,
                   border: "1.5px solid var(--ink)",
@@ -161,7 +161,6 @@ function ContractAnatomy() {
                   <div style={{ fontFamily: "var(--serif)", fontSize: 16 }}>{step.s}</div>
                   <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>{step.d}</div>
                 </div>
-                <span className="mono" style={{ fontSize: 12, color: i === 5 ? "var(--accent)" : "var(--ink-3)" }}>{step.t}</span>
               </div>
             ))}
           </div>
@@ -177,7 +176,7 @@ function SecurityStats() {
       <div className="wide">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", borderTop: "1.5px solid var(--ink)", borderLeft: "1.5px solid var(--ink)" }}>
           {[
-            { v: "28ms", l: "Median validator latency" },
+            { v: "1", l: "Block to freeze a rogue agent" },
             { v: "100%", l: "Enforcement on chain" },
             { v: "0", l: "Off-chain trust deps" },
             { v: "5", l: "Guardrails in the validator" },
