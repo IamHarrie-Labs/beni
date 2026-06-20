@@ -483,15 +483,34 @@ function Footer({ setPage }) {
             </p>
           </div>
           {[
-            { t: "Product",    l: ["Overview", "The dashboard", "Pricing", "Changelog"] },
-            { t: "Developers", l: ["Read the docs", "SDK", "API", "Aiken contracts"] },
-            { t: "Security",   l: ["Architecture", "Audits", "Bug bounty", "Disclosure"] },
-            { t: "Company",    l: ["About", "Field notes", "Careers", "Say hi"] },
+            { t: "Product",    items: [
+              { label: "Overview",  action: () => setPage("landing") },
+              { label: "Dashboard", action: () => setPage("dashboard") },
+            ]},
+            { t: "Developers", items: [
+              { label: "Read the docs", action: () => setPage("docs") },
+              { label: "GitHub",        action: () => window.open("https://github.com/IamHarrie-Labs/beni", "_blank") },
+            ]},
+            { t: "Security", items: [
+              { label: "How it's safe", action: () => setPage("security") },
+            ]},
+            { t: "Brand", items: [
+              { label: "Brand book", action: () => setPage("brand") },
+            ]},
           ].map(col => (
             <div key={col.t}>
               <div className="smallcaps" style={{ marginBottom: 18, color: "var(--accent)" }}>{col.t}</div>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-                {col.l.map(l => <li key={l} style={{ fontSize: 16 }}>{l}</li>)}
+                {col.items.map(item => (
+                  <li key={item.label}>
+                    <button
+                      onClick={item.action}
+                      style={{ background: "none", border: 0, padding: 0, cursor: "pointer", color: "var(--ink)", fontFamily: "var(--serif)", fontSize: 16, textAlign: "left" }}
+                    >
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           ))}

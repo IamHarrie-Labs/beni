@@ -10,7 +10,7 @@ function SecurityPage() {
       <section style={{ padding: "80px 0 60px", position: "relative", overflow: "hidden", borderBottom: "1.5px solid var(--ink)" }}>
         <div className="wide">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 40 }}>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter — How it's safe</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter · How it's safe</span>
             <span className="smallcaps" style={{ color: "var(--ink-3)" }}>The architecture, plainly</span>
           </div>
           <h1 className="display" style={{ fontSize: "clamp(48px, 9vw, 120px)", lineHeight: 0.9, margin: 0, letterSpacing: "-0.025em" }}>
@@ -180,7 +180,7 @@ function SecurityStats() {
             { v: "28ms", l: "Median validator latency" },
             { v: "100%", l: "Enforcement on chain" },
             { v: "0", l: "Off-chain trust deps" },
-            { v: "Q1 '26", l: "Audited by Tweag Labs" },
+            { v: "5", l: "Guardrails in the validator" },
           ].map(s => (
             <div key={s.l} style={{ padding: "40px 32px", borderRight: "1.5px solid var(--ink)", borderBottom: "1.5px solid var(--ink)", textAlign: "center" }}>
               <div className="display" style={{ fontSize: 44, lineHeight: 1, letterSpacing: "-0.025em" }}>{s.v}</div>
@@ -342,15 +342,7 @@ function DocsPage() {
               Aiken playground
             </button>
           </li>
-          <li>
-            <button onClick={() => window.open("mailto:hello@beni.run?subject=Docs%20feedback", "_blank")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink)", fontFamily: "var(--serif)", fontSize: 14, padding: 0 }}>
-              Edit this page
-            </button>
-          </li>
         </ul>
-
-        <div className="hand" style={{ marginTop: 32, fontSize: 22, color: "var(--ink-2)" }}>got stuck?<br/>hello@beni.run</div>
       </aside>
     </div>
   );
@@ -518,7 +510,7 @@ await rejectSpend(wallet, queue[0].id);`}</CodeSnippet>
 function ContractsBody() {
   return (
     <>
-      <P>All Beni validators are written in Aiken (v1.1.x, PlutusV3 / Conway era) and audited by Tweag Labs. Source and reproducible build artifacts are on GitHub.</P>
+      <P>All Beni validators are written in Aiken (v1.1.x, PlutusV3 / Conway era). Source and reproducible build artifacts are on GitHub.</P>
       <H2>Redeemers</H2>
       <CodeSnippet lang="AIKEN">{`pub type Redeemer {
   Spend        // agent-initiated spend — checks all caps + whitelist
@@ -758,7 +750,7 @@ const txHash = await approveSpend(lucid, wallet, queue[0].id);
 
 // No on-chain transaction — just marks the queue entry as rejected.
 await rejectSpend(wallet, queue[0].id);`}</CodeSnippet>
-      <Callout accent title="Phase 4 — Persistent queue">The current queue uses a local JSON file. Phase 4 will migrate to Vercel KV for multi-session persistence and webhook push notifications.</Callout>
+      <Callout accent title="Live on Vercel KV">The approval queue is backed by Vercel KV in production. Items persist across restarts and are visible across all dashboard sessions.</Callout>
     </>
   );
 }
@@ -773,7 +765,7 @@ function BrandPage() {
         <div className="wide">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 30 }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>The brand book</span>
-            <span className="smallcaps" style={{ color: "var(--ink-3)" }}>Issue 04 — May 2026</span>
+            <span className="smallcaps" style={{ color: "var(--ink-3)" }}>Issue 04 · May 2026</span>
           </div>
           <h1 className="display" style={{ fontSize: "clamp(48px, 9vw, 120px)", lineHeight: 0.88, margin: 0, letterSpacing: "-0.03em" }}>
             How Beni<br/>
