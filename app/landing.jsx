@@ -33,7 +33,8 @@ function Hero({ setPage }) {
               <span style={{ position: "absolute", left: 0, right: 0, bottom: "-0.18em" }}>
                 <ScribbleUnder width="100%" thick={5} color="var(--accent)"/>
               </span>
-            </span> overspend.
+            </span><br/>
+            overspend.
           </h1>
 
           {/* Floating doodles */}
