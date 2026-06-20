@@ -7,7 +7,7 @@ const { useState: useStateL, useEffect: useEffectL } = React;
 /* =================================================================== */
 function Hero({ setPage }) {
   return (
-    <section style={{ paddingTop: 60, paddingBottom: 40, position: "relative", overflow: "hidden" }}>
+    <section style={{ paddingTop: 104, paddingBottom: 40, position: "relative", overflow: "hidden" }}>
       <div className="wide" style={{ position: "relative" }}>
         {/* Top label row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
