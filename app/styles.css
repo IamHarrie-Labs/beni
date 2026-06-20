@@ -299,6 +299,10 @@ section { position: relative; }
   grid-template-columns: repeat(4, 1fr);
 }
 
+/* Allow grid children to shrink below their content's intrinsic width
+   (prevents long code lines / wide media from blowing out the layout). */
+.rg-2 > *, .rg-4 > *, .rg-5 > * { min-width: 0; }
+
 /* 5-column hero diagram → horizontally scrollable on mobile */
 .rg-5 {
   display: grid;
@@ -307,12 +311,22 @@ section { position: relative; }
   align-items: center;
 }
 
+/* Footer column grid → collapses on smaller screens */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, 1fr);
+  gap: 56px;
+}
+
 @media (max-width: 900px) {
   .wide { padding: 0 20px; }
   .rg-2 { grid-template-columns: 1fr; gap: 36px; }
   .rg-4 { grid-template-columns: repeat(2, 1fr); }
   .rg-hide-mobile { display: none !important; }
   .rg-sticky-off { position: static !important; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 36px 28px; }
+  .footer-grid > :first-child { grid-column: 1 / -1; }
+  .nav-hide-mobile { display: none !important; }
 }
 
 @media (max-width: 560px) {

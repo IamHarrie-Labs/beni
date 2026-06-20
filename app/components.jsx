@@ -425,14 +425,14 @@ function TopNav({ page, setPage, wallet }) {
         >
           <Wordmark size={22}/>
         </button>
-        <span className="stamp" style={{ fontSize: 10, flexShrink: 0 }}>
+        <span className="stamp nav-hide-mobile" style={{ fontSize: 10, flexShrink: 0 }}>
           <Dot size={6} color="var(--ok)"/> Cardano · Preview
         </span>
 
-        <div style={{ width: 1.5, height: 28, background: "var(--ink)", flexShrink: 0 }}/>
+        <div className="nav-hide-mobile" style={{ width: 1.5, height: 28, background: "var(--ink)", flexShrink: 0 }}/>
 
         {/* CENTER: Nav links — border-bottom highlights exactly one item width */}
-        <nav style={{ display: "flex", gap: 18 }}>
+        <nav className="nav-hide-mobile" style={{ display: "flex", gap: 18 }}>
           {navItems.map(it => (
             <button
               key={it.id}
@@ -474,7 +474,7 @@ function Footer({ setPage }) {
       position: "relative", overflow: "hidden",
     }}>
       <div className="wide">
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(4, 1fr)", gap: 56, marginBottom: 64 }}>
+        <div className="footer-grid" style={{ marginBottom: 64 }}>
           <div>
             <Wordmark size={28}/>
             <p style={{ fontSize: 17, lineHeight: 1.5, marginTop: 18, maxWidth: 320, color: "var(--ink-2)" }}>

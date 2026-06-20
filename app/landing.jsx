@@ -43,7 +43,7 @@ function Hero({ setPage }) {
           <div style={{ position: "absolute", top: 40, right: -10, transform: "rotate(8deg)" }}>
             <Star size={30} color="var(--accent)"/>
           </div>
-          <div style={{ position: "absolute", top: 150, right: 80, transform: "rotate(-6deg)", display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="rg-hide-mobile" style={{ position: "absolute", top: 150, right: 80, transform: "rotate(-6deg)", display: "flex", alignItems: "center", gap: 8 }}>
             <span className="hand" style={{ fontSize: 24, color: "var(--ink-2)" }}>← the whole product, in five words</span>
           </div>
           <div style={{ position: "absolute", bottom: -16, left: -16, transform: "rotate(-12deg)" }}>
@@ -158,7 +158,7 @@ function Problem() {
           <div className="rg-sticky-off" style={{ position: "sticky", top: 100 }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One — The mess</span>
             {/* Reduced from 80px */}
-            <h2 className="display" style={{ fontSize: 52, lineHeight: 0.96, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
+            <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 52px)", lineHeight: 0.96, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
               AI agents<br/>
               can move money.<br/>
               <span style={{ color: "var(--ink-4)", fontStyle: "italic" }}>nothing</span><br/>
@@ -217,7 +217,7 @@ function HowItWorks() {
           <div>
             <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two — How</span>
             {/* Reduced from 96px */}
-            <h2 className="display" style={{ fontSize: 62, lineHeight: 0.94, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
+            <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 62px)", lineHeight: 0.94, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
               Every transaction<br/>passes through Beni.
             </h2>
           </div>
@@ -267,7 +267,7 @@ function Rules() {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginBottom: 80 }}>
           {/* Reduced from 120px */}
-          <h2 className="display" style={{ fontSize: 74, lineHeight: 0.92, margin: 0, letterSpacing: "-0.025em" }}>
+          <h2 className="display" style={{ fontSize: "clamp(36px, 8vw, 74px)", lineHeight: 0.92, margin: 0, letterSpacing: "-0.025em" }}>
             Five guardrails,<br/>
             <span style={{ color: "var(--accent)" }}>one</span> thread token.
           </h2>
@@ -324,7 +324,7 @@ function SdkSection({ setPage }) {
           <div>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three — For builders</span>
             {/* Reduced from 88px */}
-            <h2 className="display" style={{ fontSize: 58, lineHeight: 0.94, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
+            <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 58px)", lineHeight: 0.94, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
               A few lines<br/>
               to deploy a<br/>
               guarded wallet.
@@ -390,7 +390,7 @@ lucid.selectWalletFromPrivateKey(agentPrivateKey)
 /* =================================================================== */
 /*  FAQ                                                                 */
 /* =================================================================== */
-function FAQ() {
+function FAQ({ setPage }) {
   const items = [
     { q: "Where do the rules actually run?", a: "Inside an Aiken validator on Cardano. Beni's off-chain services help you author and observe — but enforcement is on-chain. No off-chain dependency can override a deployed cap." },
     { q: "Does Beni hold my funds?", a: "No. Beni never takes custody. Your wallet still signs every transaction; the validator simply refuses to settle anything that violates your rules." },
@@ -407,13 +407,13 @@ function FAQ() {
           <div className="rg-sticky-off" style={{ position: "sticky", top: 100, alignSelf: "start" }}>
             <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four — Q&amp;A</span>
             {/* Reduced from 88px */}
-            <h2 className="display" style={{ fontSize: 58, lineHeight: 0.94, margin: "16px 0 28px" }}>
+            <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 58px)", lineHeight: 0.94, margin: "16px 0 28px" }}>
               Questions,<br/>answered.
             </h2>
             <p style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 360 }}>
-              For everything else the docs go deeper. Or write us a letter.
+              For everything else, the docs go deeper.
             </p>
-            <a href="https://github.com/IamHarrie-Labs/beni" target="_blank" rel="noreferrer" className="hand" style={{ fontSize: 26, color: "var(--accent)", display: "inline-block", marginTop: 18, textDecoration: "none" }}>GitHub ↗</a>
+            <button onClick={() => setPage("docs")} className="hand" style={{ fontSize: 26, color: "var(--accent)", background: "none", border: 0, padding: 0, marginTop: 18, cursor: "pointer", display: "inline-block" }}>Read the docs →</button>
           </div>
           <div style={{ borderTop: "1.5px solid var(--ink)" }}>
             {items.map((it, i) => (
@@ -450,10 +450,10 @@ function FinalCTA({ setPage }) {
     <section style={{ padding: "60px 0 100px" }}>
       <div className="wide">
         <div style={{ background: "var(--ink)", color: "var(--paper)", padding: "clamp(40px, 8vw, 100px) clamp(24px, 5vw, 60px)", position: "relative", overflow: "hidden", boxShadow: "10px 10px 0 0 var(--accent)" }}>
-          <div style={{ position: "absolute", top: 40, right: 60, transform: "rotate(8deg)" }}>
+          <div className="rg-hide-mobile" style={{ position: "absolute", top: 40, right: 60, transform: "rotate(8deg)" }}>
             <Star size={48} color="var(--accent-3)"/>
           </div>
-          <div style={{ position: "absolute", bottom: 40, left: 60, transform: "rotate(-12deg)" }}>
+          <div className="rg-hide-mobile" style={{ position: "absolute", bottom: 40, left: 60, transform: "rotate(-12deg)" }}>
             <Asterisk size={56} color="var(--accent)"/>
           </div>
           <div className="smallcaps" style={{ color: "var(--accent-3)", marginBottom: 24 }}>Last page</div>
@@ -495,7 +495,7 @@ function Landing({ setPage }) {
       <HowItWorks/>
       <Rules/>
       <SdkSection setPage={setPage}/>
-      <FAQ/>
+      <FAQ setPage={setPage}/>
       <FinalCTA setPage={setPage}/>
     </div>
   );
