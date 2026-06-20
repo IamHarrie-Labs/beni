@@ -425,10 +425,6 @@ function TopNav({ page, setPage, wallet }) {
         >
           <Wordmark size={22}/>
         </button>
-        <span className="stamp nav-hide-mobile" style={{ fontSize: 10, flexShrink: 0 }}>
-          <Dot size={6} color="var(--ok)"/> Cardano · Preview
-        </span>
-
         <div className="nav-hide-mobile" style={{ width: 1.5, height: 28, background: "var(--ink)", flexShrink: 0 }}/>
 
         {/* CENTER: Nav links — border-bottom highlights exactly one item width */}
