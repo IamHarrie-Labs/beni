@@ -8,11 +8,11 @@ const BLOCKFROST_API = IS_LOCAL ? "http://localhost:3001/api/blockfrost" : "/api
 
 // ── Shared utilities ──────────────────────────────────────────────────────────
 function fmtAda(ada) {
-  if (ada == null) return "—";
+  if (ada == null) return "·";
   return ada.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function shortenAddr(addr) {
-  if (!addr) return "—";
+  if (!addr) return "·";
   return addr.slice(0, 12) + "…" + addr.slice(-6);
 }
 function timeAgo(unixTs) {

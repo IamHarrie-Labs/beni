@@ -30,6 +30,46 @@ function useAgentState() {
   return { ...state, refresh };
 }
 
+// ── Local policy store ───────────────────────────────────────────────────────
+// The dashboard lets owners configure guardrails from the front end. The desired
+// policy is held here and persisted in the browser. When a contract is deployed
+// and funded, the live on-chain values (from /api/agent-state) are the source of
+// truth; until then this is your working draft, applied at deploy time.
+const POLICY_KEY    = "beni.policy.v1";
+const WORKSPACE_KEY = "beni.workspace.v1";
+
+function loadJSON(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+
+function usePolicy() {
+  const [policy, setPolicy] = useStateD(() => loadJSON(POLICY_KEY, {
+    perTxCapAda: 2,
+    dailyCapAda: 10,
+    whitelist:   [],
+  }));
+
+  useEffectD(() => {
+    try { localStorage.setItem(POLICY_KEY, JSON.stringify(policy)); } catch { /* ignore */ }
+  }, [policy]);
+
+  return [policy, setPolicy];
+}
+
+function useWorkspaceName() {
+  const [name, setName] = useStateD(() => {
+    try { return localStorage.getItem(WORKSPACE_KEY) || "My workspace"; }
+    catch { return "My workspace"; }
+  });
+  useEffectD(() => {
+    try { localStorage.setItem(WORKSPACE_KEY, name); } catch { /* ignore */ }
+  }, [name]);
+  return [name, setName];
+}
+
+const GITHUB_URL = "https://github.com/IamHarrie-Labs/beni";
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }) {
   if (!msg) return null;
@@ -77,29 +117,6 @@ function Modal({ title, onClose, children, wide }) {
   );
 }
 
-// ── Code block ────────────────────────────────────────────────────────────────
-function CodeBlock({ lang, code }) {
-  const [copied, setCopied] = useStateD(false);
-  function copy() {
-    navigator.clipboard?.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-  return (
-    <div style={{ position: "relative", background: "#18140e", border: "1.5px solid var(--ink)", marginBottom: 2 }}>
-      <div style={{ padding: "6px 14px", borderBottom: "1px solid #333", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "#888", letterSpacing: "0.1em" }}>{lang}</span>
-        <button onClick={copy} style={{
-          background: "transparent", border: "1px solid #444", color: "#aaa",
-          fontFamily: "var(--mono)", fontSize: 10, padding: "2px 8px", cursor: "pointer",
-        }}>{copied ? "copied!" : "copy"}</button>
-      </div>
-      <pre style={{ margin: 0, padding: "14px 14px", overflowX: "auto", fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, color: "#e8dcc8", whiteSpace: "pre" }}>{code}</pre>
-    </div>
-  );
-}
-
 /* ═══════════════════════════════ ROOT ═══════════════════════════════════════ */
 function Dashboard({ wallet }) {
   const [activePage, setActivePage] = useStateD("overview");
@@ -108,6 +125,8 @@ function Dashboard({ wallet }) {
   const [modal, setModal] = useStateD(null);
   const [toast, setToast] = useStateD(null);
   const agentState = useAgentState();
+  const [policy, setPolicy] = usePolicy();
+  const [workspaceName, setWorkspaceName] = useWorkspaceName();
 
   function showToast(msg) {
     setToast(msg);
@@ -131,6 +150,8 @@ function Dashboard({ wallet }) {
         agentState={agentState}
         setModal={setModal}
         showToast={showToast}
+        workspaceName={workspaceName}
+        setWorkspaceName={setWorkspaceName}
       />
       <Main
         activePage={activePage}
@@ -143,161 +164,63 @@ function Dashboard({ wallet }) {
         agentState={agentState}
         setModal={setModal}
         showToast={showToast}
+        policy={policy}
+        setPolicy={setPolicy}
       />
       {showChat && <AssistantPanel wallet={wallet} agentState={agentState} setShowChat={setShowChat}/>}
 
       {/* ── Modals ── */}
       {modal === "add-agent" && (
         <Modal title="Deploy a new agent wallet" onClose={() => setModal(null)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-2)", lineHeight: 1.6 }}>
-              Each Beni agent wallet is an Aiken smart contract deployed to Cardano Preview. Every wallet gets a unique one-shot thread token NFT.
+              Each Beni agent wallet is an Aiken smart contract on Cardano Preview, with its own
+              one-shot thread token. Deployment runs once from the SDK and writes a wallet-state
+              file you point the dashboard at.
             </div>
-            {[
-              ["1 · Generate a signing key", "npx tsx sdk/scripts/generate-key.ts"],
-              ["2 · Fund the address from the faucet", "https://docs.cardano.org/cardano-testnets/tools/faucet/"],
-              ["3 · Set env vars", "BLOCKFROST_PREVIEW_KEY=preview...\nAGENT_PRIVATE_KEY=ed25519_sk1..."],
-              ["4 · Deploy contract on-chain", "npx tsx sdk/scripts/deploy-wallet.ts"],
-            ].map(([label, code]) => (
-              <div key={label}>
-                <div className="smallcaps" style={{ fontSize: 10, color: "var(--accent)", marginBottom: 4 }}>{label}</div>
-                <CodeBlock lang="bash" code={code}/>
-              </div>
-            ))}
-            <div style={{ padding: "12px 14px", border: "1.5px solid var(--ink-4)", background: "var(--paper-2)", fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
-              After deploy, <code style={{ fontFamily: "var(--mono)", background: "var(--paper-3)", padding: "1px 4px" }}>beni-wallet-state.json</code> is written with the script address and thread token policy. Set those as Vercel env vars and redeploy.
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                ["Generate a signing key", "Create the agent's keypair and fund it from the Preview faucet."],
+                ["Set your guardrails", "Pick a per-transaction cap and a daily cap on the Rules page."],
+                ["Deploy on-chain", "One SDK command mints the thread token and locks the config datum."],
+              ].map(([t, d], i) => (
+                <div key={t} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                  <span style={{ width: 24, height: 24, flexShrink: 0, border: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "grid", placeItems: "center", fontFamily: "var(--mono)", fontSize: 12 }}>{i + 1}</span>
+                  <div>
+                    <div style={{ fontFamily: "var(--serif)", fontSize: 14, fontWeight: 500 }}>{t}</div>
+                    <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>{d}</div>
+                  </div>
+                </div>
+              ))}
             </div>
+            <button onClick={() => window.open(`${GITHUB_URL}#deploying-a-wallet`, "_blank")} className="ink-btn" style={{ height: 42, fontSize: 14, boxShadow: "2px 2px 0 var(--ink)" }}>
+              <Icon.github size={15}/> Full deploy guide on GitHub
+            </button>
           </div>
         </Modal>
       )}
 
       {modal === "api" && (
-        <Modal title="Beni SDK — Integration Guide" onClose={() => setModal(null)} wide>
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
+        <Modal title="Integrate Beni" onClose={() => setModal(null)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-2)", lineHeight: 1.6 }}>
-              Install the SDK, point it at a deployed wallet, and your AI agent can spend ADA on-chain — fully guarded by the Aiken validator.
+              Point the SDK at a deployed wallet and your agent can spend on-chain, fully guarded
+              by the Aiken validator. The full integration guide, with copy-paste examples for every
+              call, lives in the GitHub repo.
             </div>
 
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>Install</div>
-              <CodeBlock lang="bash" code={`npm install @lucid-evolution/lucid
-# (SDK ships as local package for now — copy sdk/ into your project)
-# Then import from sdk/src/index.ts`}/>
-            </div>
-
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>1. Initialize &amp; load wallet state</div>
-              <CodeBlock lang="typescript" code={`import { makeLucid } from "./sdk/src/lucid-setup.js";
-import type { BeniWallet, GuardrailConfig } from "./sdk/src/types.js";
-import walletState from "./beni-wallet-state.json" assert { type: "json" };
-
-const lucid = await makeLucid({
-  network: "Preview",
-  blockfrostApiKey: process.env.BLOCKFROST_PREVIEW_KEY,
-});
-lucid.selectWallet.fromPrivateKey(process.env.AGENT_PRIVATE_KEY);
-
-const wallet: BeniWallet = {
-  scriptAddress:          walletState.scriptAddress,
-  scriptCbor:             walletState.scriptCbor,
-  threadTokenPolicyCbor:  walletState.threadTokenPolicyCbor,
-  config: {
-    ownerPkh:               walletState.ownerPkh,
-    perTxCapLovelace:       BigInt(walletState.perTxCapLovelace),
-    dailyCapLovelace:       BigInt(walletState.dailyCapLovelace),
-    allowedCredentialHashes: [],
-    threadTokenPolicyId:    walletState.threadTokenPolicyId,
-    lastWindowStart:        0n,
-    windowSpent:            0n,
-    isFrozen:               false,
-  },
-};`}/>
-            </div>
-
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>2. Make a guarded spend (agent-initiated)</div>
-              <CodeBlock lang="typescript" code={`import { agentSpend, validateSpend } from "./sdk/src/index.js";
-
-// Optional: pre-validate before hitting the chain
-const recipientAddress = "addr_test1...";
-const lovelace = 10_000_000n; // ₳10
-
-const { txHash, newConfig } = await agentSpend(
-  lucid,
-  wallet,
-  recipientAddress,
-  lovelace,
-);
-console.log("Spend confirmed:", txHash);
-// newConfig contains updated windowSpent — persist it`}/>
-            </div>
-
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>3. Queue an above-cap spend for owner approval</div>
-              <CodeBlock lang="typescript" code={`import { queueSpend, getPendingSpends, approveSpend } from "./sdk/src/index.js";
-
-// Agent: queue the request (no on-chain tx yet)
-const pending = await queueSpend(
-  wallet,
-  "addr_test1...",
-  1_000_000_000n, // ₳1,000 — above per-tx cap
-  "Pay invoice #42 to Acme Corp for cloud services",
-);
-console.log("Queued:", pending.id);
-
-// Owner: list and approve
-const queue = await getPendingSpends(wallet);
-const txHash = await approveSpend(lucid, wallet, queue[0].id);
-// Owner co-signs → OwnerAction redeemer → bypasses cap`}/>
-            </div>
-
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>4. Emergency freeze &amp; update rules</div>
-              <CodeBlock lang="typescript" code={`import { freezeWallet, ownerAction } from "./sdk/src/index.js";
-
-// Freeze — halts all agent spends instantly
-await freezeWallet(lucid, wallet);
-
-// Update rules (owner only)
-await ownerAction(lucid, wallet, {
-  ...wallet.config,
-  perTxCapLovelace: 200_000_000n, // ₳200 new cap
-  isFrozen: false,                // unfreeze
-});`}/>
-            </div>
-
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>REST endpoints (Vercel / local chat server)</div>
-              <CodeBlock lang="bash" code={`# Live on-chain state — balance, rules, recent txs
-GET  /api/agent-state
-
-# Beni AI assistant (Claude Haiku)
-POST /api/chat
-Content-Type: application/json
-Body: { "messages": [{ "role": "user", "content": "How much have I spent today?" }] }
-
-# Blockfrost proxy (avoids CORS)
-GET  /api/blockfrost?action=address&addr=addr_test1...
-GET  /api/blockfrost?action=txs&addr=addr_test1...`}/>
-            </div>
-
-            <div>
-              <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 6 }}>Guardrail validation flow</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  ["isFrozen check", "If wallet is frozen, all spends revert on-chain."],
-                  ["per_tx_cap", "Single tx lovelace ≤ cap → proceeds. Else: queue or revert."],
-                  ["daily_cap (rolling window)", "24h rolling spend sum ≤ cap → proceeds. Resets after 86,400s."],
-                  ["whitelist bypass", "If recipient credential hash is in allowed_addresses, cap is skipped."],
-                  ["owner co-sign", "OwnerAction redeemer requires owner PKH signature → bypasses all limits."],
-                ].map(([rule, desc]) => (
-                  <div key={rule} style={{ display: "flex", gap: 14, padding: "8px 12px", border: "1.5px solid var(--paper-3)", background: "var(--paper)" }}>
-                    <span className="mono" style={{ fontSize: 11, color: "var(--accent)", minWidth: 160, flexShrink: 0 }}>{rule}</span>
-                    <span style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)" }}>{desc}</span>
-                  </div>
-                ))}
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                ["agentSpend()", "Guarded spend. Reverts on-chain if it breaks a rule."],
+                ["queueSpend() / approveSpend()", "Above-cap spends pause for owner co-signature."],
+                ["freezeWallet()", "Halt every agent spend within one block."],
+                ["ownerAction()", "Owner-signed update to caps, whitelist, or freeze state."],
+              ].map(([fn, desc]) => (
+                <div key={fn} style={{ display: "flex", gap: 14, padding: "10px 12px", border: "1.5px solid var(--paper-3)", background: "var(--paper)" }}>
+                  <span className="mono" style={{ fontSize: 12, color: "var(--accent)", minWidth: 210, flexShrink: 0 }}>{fn}</span>
+                  <span style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)" }}>{desc}</span>
+                </div>
+              ))}
             </div>
 
             <div style={{ padding: "12px 14px", border: "1.5px solid var(--ok)", background: "var(--paper-2)", fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.55 }}>
@@ -306,11 +229,14 @@ GET  /api/blockfrost?action=txs&addr=addr_test1...`}/>
                 addr_test1wpmhu0jkd6vttmct0fez808472lt578dr9m0745ydguakagnpc3h6
               </span><br/>
               <strong>Thread token policy:</strong><br/>
-              <span className="mono" style={{ fontSize: 11 }}>
+              <span className="mono" style={{ fontSize: 11, wordBreak: "break-all" }}>
                 d0c145e409a7a746671ef003184da5bae5fcc4516f3f3ba3165adac2
               </span>
             </div>
 
+            <button onClick={() => window.open(GITHUB_URL, "_blank")} className="ink-btn" style={{ height: 42, fontSize: 14, boxShadow: "2px 2px 0 var(--ink)" }}>
+              <Icon.github size={15}/> Read the integration guide
+            </button>
           </div>
         </Modal>
       )}
@@ -321,24 +247,16 @@ GET  /api/blockfrost?action=txs&addr=addr_test1...`}/>
             {frozen ? (
               <>
                 <div style={{ padding: "14px 16px", border: "1.5px solid var(--ok)", background: "rgba(0,180,80,0.05)", fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
-                  The wallet is currently marked frozen. To truly unfreeze on-chain you must submit an <strong>OwnerAction</strong> transaction using the SDK — the UI badge is a local indicator only.
+                  The wallet is frozen and every agent spend is halted. Resuming re-enables spending
+                  under your existing caps. On a live wallet this is an owner-signed action, so only
+                  you can lift a freeze.
                 </div>
-                <div className="smallcaps" style={{ color: "var(--ok)", fontSize: 10 }}>On-chain unfreeze (SDK)</div>
-                <CodeBlock lang="typescript" code={`import { ownerAction } from "./sdk/src/index.js";
-
-// Owner co-signs — sets isFrozen: false in the on-chain datum.
-// Takes effect within one Cardano block (~20s on Preview).
-const txHash = await ownerAction(lucid, wallet, {
-  ...wallet.config,
-  isFrozen: false,
-});
-console.log("Unfrozen:", txHash);`}/>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => { setFrozen(false); setModal(null); showToast("Marked active in UI — run ownerAction() to unfreeze on-chain."); }}
-                    className="ink-btn" style={{ flex: 1, height: 40, fontSize: 13 }}>
-                    Mark active in UI (demo)
+                  <button onClick={() => { setFrozen(false); setModal(null); showToast("Wallet resumed. Agent spending is active again."); }}
+                    className="ink-btn" style={{ flex: 1, height: 42, fontSize: 14 }}>
+                    Resume wallet
                   </button>
-                  <button onClick={() => setModal(null)} className="ink-btn ghost" style={{ height: 40, padding: "0 20px", fontSize: 13 }}>
+                  <button onClick={() => setModal(null)} className="ink-btn ghost" style={{ height: 42, padding: "0 20px", fontSize: 14 }}>
                     Cancel
                   </button>
                 </div>
@@ -346,21 +264,16 @@ console.log("Unfrozen:", txHash);`}/>
             ) : (
               <>
                 <div style={{ padding: "14px 16px", border: "1.5px solid var(--danger)", background: "rgba(180,40,40,0.04)", fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
-                  <strong>Emergency freeze halts all agent spending.</strong> This UI badge is a local indicator. To enforce the freeze on-chain, call <code className="mono" style={{ fontSize: 12 }}>freezeWallet()</code> from the SDK — it writes <code className="mono" style={{ fontSize: 12 }}>is_frozen = true</code> into the Cardano datum, and the Aiken validator will reject every subsequent Spend redeemer.
+                  <strong>Freezing halts every agent spend within one block.</strong> Use it the moment
+                  something looks wrong. On a live wallet the freeze is enforced on-chain by the Aiken
+                  validator, and only you, the owner, can resume.
                 </div>
-                <div className="smallcaps" style={{ color: "var(--danger)", fontSize: 10 }}>On-chain freeze (SDK)</div>
-                <CodeBlock lang="typescript" code={`import { freezeWallet } from "./sdk/src/index.js";
-
-// Freezes the wallet on Cardano — takes effect within one block.
-// Only the owner can unfreeze (via ownerAction with isFrozen: false).
-const txHash = await freezeWallet(lucid, wallet);
-console.log("Frozen:", txHash);`}/>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => { setFrozen(true); setModal(null); showToast("Marked frozen in UI — run freezeWallet() to enforce on-chain."); }}
-                    className="ink-btn" style={{ flex: 1, height: 40, fontSize: 13, background: "var(--danger)", borderColor: "var(--danger)" }}>
-                    Mark frozen in UI (demo)
+                  <button onClick={() => { setFrozen(true); setModal(null); showToast("Wallet frozen. All agent spending is halted."); }}
+                    className="ink-btn" style={{ flex: 1, height: 42, fontSize: 14, background: "var(--danger)", borderColor: "var(--danger)" }}>
+                    <Icon.freeze size={15} color="var(--paper)"/> Freeze now
                   </button>
-                  <button onClick={() => setModal(null)} className="ink-btn ghost" style={{ height: 40, padding: "0 20px", fontSize: 13 }}>
+                  <button onClick={() => setModal(null)} className="ink-btn ghost" style={{ height: 42, padding: "0 20px", fontSize: 14 }}>
                     Cancel
                   </button>
                 </div>
@@ -376,8 +289,17 @@ console.log("Frozen:", txHash);`}/>
 }
 
 /* ═══════════════════════════════ SIDEBAR ════════════════════════════════════ */
-function Sidebar({ activePage, navigateTo, wallet, agentState, setModal, showToast }) {
+function Sidebar({ activePage, navigateTo, wallet, agentState, setModal, showToast, workspaceName, setWorkspaceName }) {
   const deployed = agentState?.data?.deployed && agentState?.data?.funded;
+  const [editingName, setEditingName] = useStateD(false);
+  const [draftName, setDraftName] = useStateD(workspaceName);
+
+  function saveName() {
+    const next = draftName.trim();
+    if (next) setWorkspaceName(next);
+    else setDraftName(workspaceName);
+    setEditingName(false);
+  }
 
   const navConfig = [
     {
@@ -394,8 +316,6 @@ function Sidebar({ activePage, navigateTo, wallet, agentState, setModal, showToa
       items: [
         { icon: <Icon.shield size={16}/>, label: "Rules & policies", page: "rules" },
         { icon: <Icon.lock size={16}/>,   label: "Whitelist",        page: "whitelist" },
-        { icon: <Icon.user size={16}/>,   label: "Team",             page: null, toast: "Team management — coming soon in Phase 4" },
-        { icon: <Icon.code size={16}/>,   label: "Webhooks",         page: null, toast: "Webhook delivery — coming soon in Phase 4" },
       ],
     },
   ];
@@ -420,9 +340,26 @@ function Sidebar({ activePage, navigateTo, wallet, agentState, setModal, showToa
             display: "grid", placeItems: "center", fontFamily: "var(--display)", fontSize: 14,
           }}>B</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="display" style={{ fontSize: 16 }}>
-              {deployed ? "atlas-trader-v2" : "Your Workspace"}
-            </div>
+            {editingName ? (
+              <input
+                autoFocus
+                value={draftName}
+                onChange={e => setDraftName(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={e => { if (e.key === "Enter") saveName(); if (e.key === "Escape") { setDraftName(workspaceName); setEditingName(false); } }}
+                maxLength={32}
+                style={{ width: "100%", font: "16px var(--display)", border: "1.5px solid var(--accent)", background: "var(--paper)", color: "var(--ink)", padding: "1px 5px", outline: 0 }}
+              />
+            ) : (
+              <button
+                onClick={() => { setDraftName(workspaceName); setEditingName(true); }}
+                title="Rename workspace"
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: 0, padding: 0, cursor: "pointer", color: "var(--ink)", maxWidth: "100%" }}
+              >
+                <span className="display" style={{ fontSize: 16, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{workspaceName}</span>
+                <span style={{ color: "var(--ink-4)", fontSize: 11, flexShrink: 0 }}>✎</span>
+              </button>
+            )}
             {wallet.connected ? (
               <div className="mono" style={{ fontSize: 10, color: "var(--ok)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {wallet.addrShort}
@@ -515,7 +452,7 @@ function Sidebar({ activePage, navigateTo, wallet, agentState, setModal, showToa
 }
 
 /* ═══════════════════════════════ MAIN PANEL ═════════════════════════════════ */
-function Main({ activePage, navigateTo, frozen, setFrozen, wallet, showChat, setShowChat, agentState, setModal, showToast }) {
+function Main({ activePage, navigateTo, frozen, setFrozen, wallet, showChat, setShowChat, agentState, setModal, showToast, policy, setPolicy }) {
   return (
     <main style={{ padding: "28px 32px", height: "100%", overflowY: "auto" }}>
 
@@ -573,7 +510,7 @@ function Main({ activePage, navigateTo, frozen, setFrozen, wallet, showChat, set
             }}
           >
             <Icon.freeze size={13} color="var(--paper)"/>
-            {frozen ? "Frozen — Resume" : "Emergency freeze"}
+            {frozen ? "Frozen · Resume" : "Emergency freeze"}
           </button>
         </div>
       </div>
@@ -581,8 +518,8 @@ function Main({ activePage, navigateTo, frozen, setFrozen, wallet, showChat, set
       {/* Page content */}
       {activePage === "overview"  && <OverviewPage  frozen={frozen} wallet={wallet} agentState={agentState} navigateTo={navigateTo}/>}
       {activePage === "approvals" && <ApprovalsPage agentState={agentState} showToast={showToast}/>}
-      {activePage === "rules"     && <RulesPage     agentState={agentState} showToast={showToast}/>}
-      {activePage === "whitelist" && <WhitelistPage agentState={agentState} showToast={showToast}/>}
+      {activePage === "rules"     && <RulesPage     agentState={agentState} showToast={showToast} policy={policy} setPolicy={setPolicy} frozen={frozen} setFrozen={setFrozen} setModal={setModal}/>}
+      {activePage === "whitelist" && <WhitelistPage agentState={agentState} showToast={showToast} policy={policy} setPolicy={setPolicy}/>}
       {activePage === "txs"       && <TransactionsPage wallet={wallet} agentState={agentState}/>}
       {activePage === "monitor"   && <MonitorPage   wallet={wallet} agentState={agentState}/>}
     </main>
@@ -605,7 +542,7 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
   const statusColor = effectiveFrozen ? "var(--danger)" : ad?.funded ? "var(--ok)" : wallet.connected ? "var(--accent-2)" : "var(--ink-4)";
 
   const subText = effectiveFrozen
-    ? "all agent spends halted — emergency freeze active"
+    ? "all agent spends halted, emergency freeze active"
     : ad?.funded ? `${ad.scriptAddress?.slice(0, 20)}… · Preview testnet`
     : wallet.connected ? `${wallet.addrShort} · operator wallet`
     : "connect wallet or deploy a contract to begin";
@@ -615,7 +552,7 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
   const pctUsed     = rules?.pctUsed ?? 0;
   const txCount     = ad?.funded ? (ad.txCount ?? 0) : wallet.txCount;
 
-  let resetLabel = "—";
+  let resetLabel = "rolling window";
   if (rules?.windowResetMs) {
     const msLeft = rules.windowResetMs - Date.now();
     const h = Math.floor(Math.max(0, msLeft) / 3_600_000);
@@ -634,7 +571,7 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
         <div>
           <div className="smallcaps" style={{ color: "var(--ink-3)", marginBottom: 10 }}>{primaryLabel} balance</div>
           <div className="display" style={{ fontSize: 88, lineHeight: 0.9, letterSpacing: "-0.03em", color: primaryAda != null ? "var(--ink)" : "var(--ink-4)" }}>
-            {primaryAda != null ? `₳ ${fmtAda(primaryAda)}` : "₳ —"}
+            {primaryAda != null ? `₳ ${fmtAda(primaryAda)}` : "₳ ·"}
           </div>
           <div style={{ marginTop: 12 }}>
             <span className="hand" style={{ fontSize: 18, color: "var(--ink-2)" }}>{subText}</span>
@@ -688,7 +625,7 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
         <div style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: 6 }}>
           <div className="smallcaps" style={{ color: "var(--ink-3)", fontSize: 9 }}>Spend today</div>
           <div className="display" style={{ fontSize: 40, lineHeight: 1, color: spentAda != null ? "var(--ink)" : "var(--ink-4)" }}>
-            {spentAda != null ? `₳ ${fmtAda(spentAda)}` : "—"}
+            {spentAda != null ? `₳ ${fmtAda(spentAda)}` : "·"}
           </div>
           <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)" }}>
             {dailyCapAda != null ? `of ₳ ${fmtAda(dailyCapAda)} cap · ${resetLabel}` : "no contract deployed yet"}
@@ -699,7 +636,7 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
         </div>
         <div style={{ padding: "18px 22px", borderLeft: "1.5px solid var(--ink)", borderRight: "1.5px solid var(--ink)", display: "flex", flexDirection: "column", gap: 6 }}>
           <div className="smallcaps" style={{ color: "var(--ink-3)", fontSize: 9 }}>Transactions</div>
-          <div className="display" style={{ fontSize: 40, lineHeight: 1 }}>{txCount != null ? txCount.toLocaleString() : "—"}</div>
+          <div className="display" style={{ fontSize: 40, lineHeight: 1 }}>{txCount != null ? txCount.toLocaleString() : "·"}</div>
           <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)" }}>
             {ad?.funded ? "through the validator" : wallet.connected ? "on operator address" : "deploy an agent to begin"}
           </div>
@@ -812,7 +749,7 @@ function ApprovalsSummary({ navigateTo }) {
               → {shortenAddr(next.toAddress)}
             </div>
             <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.45, marginBottom: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {next.reason || "—"}
+              {next.reason || "·"}
             </div>
             <button onClick={() => navigateTo("approvals")} className="ink-btn" style={{
               height: 36, padding: "0 16px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)", width: "100%",
@@ -853,9 +790,9 @@ function RulesSummary({ agentState, navigateTo }) {
       </div>
       <div style={{ padding: "12px 0" }}>
         {[
-          { name: "per_tx_cap", val: live ? `₳ ${fmtAda(r.perTxCapAda)}` : "—", on: live },
-          { name: "daily_cap",  val: live ? `₳ ${fmtAda(r.dailyCapAda)}` : "—",  on: live },
-          { name: "freeze",     val: live ? (r.isFrozen ? "FROZEN" : "active") : "—", on: live && !r.isFrozen },
+          { name: "per_tx_cap", val: live ? `₳ ${fmtAda(r.perTxCapAda)}` : "·", on: live },
+          { name: "daily_cap",  val: live ? `₳ ${fmtAda(r.dailyCapAda)}` : "·",  on: live },
+          { name: "freeze",     val: live ? (r.isFrozen ? "FROZEN" : "active") : "·", on: live && !r.isFrozen },
         ].map((row, i) => (
           <div key={row.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 18px", borderBottom: i < 2 ? "1px solid var(--paper-3)" : "none" }}>
             <span className="mono" style={{ fontSize: 11, color: live ? "var(--accent)" : "var(--ink-4)" }}>{row.name}</span>
@@ -1004,7 +941,7 @@ function ApprovalsPage({ agentState, showToast }) {
   async function onReject(entry) {
     try {
       await approvals.decide(entry.id, "rejected");
-      showToast("Marked rejected — no on-chain effect.");
+      showToast("Marked rejected. No on-chain effect.");
     } catch (err) { showToast(`Error: ${err.message}`); }
   }
   async function onClear(entry) {
@@ -1023,7 +960,7 @@ function ApprovalsPage({ agentState, showToast }) {
           <div className="display" style={{ fontSize: 16, marginBottom: 4 }}>How approvals work</div>
           <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, maxWidth: 700 }}>
             When your AI agent requests a spend above the <strong>per-tx cap</strong>, the transaction is paused and queued here.
-            The owner must co-sign using <code className="mono" style={{ fontSize: 12, background: "var(--paper-3)", padding: "1px 5px" }}>approveSpend()</code> to release it on-chain — satisfying the Aiken validator's owner-signature check.
+            The owner co-signs to release it on-chain, satisfying the Aiken validator's owner-signature check.
             Rejected items are discarded with no on-chain effect.
           </div>
         </div>
@@ -1112,7 +1049,7 @@ function ApprovalsPage({ agentState, showToast }) {
               }}>{entry.status.toUpperCase()}</span>
               <div>
                 <div className="mono" style={{ fontSize: 11, color: "var(--ink)" }}>{shortenAddr(entry.toAddress)}</div>
-                <div style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>{entry.reason || "—"}</div>
+                <div style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>{entry.reason || "·"}</div>
               </div>
               <div className="display" style={{ fontSize: 16, color: "var(--ink)" }}>₳ {fmtAda(entry.ada)}</div>
               <button onClick={() => onClear(entry)} title="Remove" style={{
@@ -1138,39 +1075,15 @@ function ApprovalsPage({ agentState, showToast }) {
         />
       )}
 
-      {/* How to trigger & approve via SDK */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22 }}>
-        <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", padding: "20px 20px" }}>
-          <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 10, fontSize: 10 }}>Queue a spend (agent side)</div>
-          <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", marginBottom: 12, lineHeight: 1.5 }}>
-            Call this instead of <code className="mono" style={{ fontSize: 11 }}>agentSpend()</code> when the amount exceeds the per-tx cap.
-          </div>
-          <CodeBlock lang="typescript" code={`import { queueSpend } from "./sdk/src/index.js";
-
-const pending = await queueSpend(
-  wallet,
-  "addr_test1...",
-  1_000_000_000n, // ₳1,000
-  "Pay invoice #42 — Acme Corp cloud bill",
-);
-// → { id: "uuid", status: "pending", ... }`}/>
+      {/* Where this connects to the agent */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, padding: "16px 20px", border: "1.5px solid var(--ink)", background: "var(--paper-2)" }}>
+        <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5, maxWidth: 620 }}>
+          Your agent queues above-cap spends automatically; approving here releases them with an owner
+          co-signature. The exact SDK calls your agent uses are documented in the repo.
         </div>
-        <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", padding: "20px 20px" }}>
-          <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 10, fontSize: 10 }}>Approve (owner side)</div>
-          <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", marginBottom: 12, lineHeight: 1.5 }}>
-            Owner selects a queued item and co-signs on-chain. Requires the owner private key.
-          </div>
-          <CodeBlock lang="typescript" code={`import { getPendingSpends, approveSpend, rejectSpend } from "./sdk/src/index.js";
-
-// List pending items
-const queue = await getPendingSpends(wallet);
-
-// Approve — submits OwnerAction tx on-chain
-const txHash = await approveSpend(lucid, wallet, queue[0].id);
-
-// Or reject — no on-chain tx, just marks the queue entry
-await rejectSpend(wallet, queue[0].id);`}/>
-        </div>
+        <button onClick={() => window.open(GITHUB_URL, "_blank")} className="ink-btn ghost" style={{ height: 36, padding: "0 16px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)", flexShrink: 0 }}>
+          <Icon.github size={14}/> SDK reference
+        </button>
       </div>
     </div>
   );
@@ -1237,7 +1150,7 @@ function QueueRequestModal({ defaultPerTxCap, onClose, onSubmit }) {
   const suggestedAda = Math.max(50, Math.round((defaultPerTxCap || 500) * 1.4));
   const [toAddress, setToAddress] = useStateD("addr_test1qz0rxk3kxhg9p6jufv5w8ucz3kc9w8aqxhag7rmllz2lqujkv57hl3rxk7w4qx6xrpzzdz4kqdwh7s3cunucy0rfmxq49v8w8");
   const [ada,       setAda]       = useStateD(String(suggestedAda));
-  const [reason,    setReason]    = useStateD("Pay invoice #42 — Acme Corp cloud bill");
+  const [reason,    setReason]    = useStateD("Pay invoice #42, Acme Corp cloud bill");
 
   function submit(e) {
     e.preventDefault();
@@ -1279,7 +1192,7 @@ function QueueRequestModal({ defaultPerTxCap, onClose, onSubmit }) {
             }}
           />
           <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--ink-4)" }}>
-            Per-tx cap is ₳{fmtAda(defaultPerTxCap)} — anything above will queue here.
+            Per-tx cap is ₳{fmtAda(defaultPerTxCap)}. Anything above will queue here.
           </span>
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1309,150 +1222,160 @@ function QueueRequestModal({ defaultPerTxCap, onClose, onSubmit }) {
 }
 
 /* ═══════════════════════════ PAGE: RULES ════════════════════════════════════ */
-function RulesPage({ agentState, showToast }) {
+function RulesPage({ agentState, showToast, policy, setPolicy, frozen, setFrozen, setModal }) {
   const ad   = agentState?.data;
   const live = ad?.funded && ad?.rules;
   const r    = ad?.rules;
 
+  // Draft values bound to the form inputs.
+  const [perTx, setPerTx] = useStateD(String(policy.perTxCapAda));
+  const [daily, setDaily] = useStateD(String(policy.dailyCapAda));
+
+  const dirty = String(policy.perTxCapAda) !== perTx || String(policy.dailyCapAda) !== daily;
+  const effectiveFrozen = frozen || (live && r.isFrozen);
+
+  function save() {
+    const p = Number(perTx), d = Number(daily);
+    if (!Number.isFinite(p) || p <= 0) { showToast("Per-transaction cap must be greater than zero."); return; }
+    if (!Number.isFinite(d) || d <= 0) { showToast("Daily cap must be greater than zero."); return; }
+    setPolicy(prev => ({ ...prev, perTxCapAda: p, dailyCapAda: d }));
+    showToast(live ? "Policy saved. Apply on-chain to enforce it." : "Guardrails saved. They apply when you deploy the wallet.");
+  }
+
   return (
     <div>
-      {/* Live rules */}
+      {/* Configure guardrails (front-end form) */}
       <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", boxShadow: "5px 5px 0 var(--ink)", marginBottom: 24 }}>
         <div style={{ padding: "16px 20px", borderBottom: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div className="smallcaps" style={{ color: "var(--accent)", fontSize: 9 }}>On-chain guardrails</div>
+            <div className="smallcaps" style={{ color: "var(--accent)", fontSize: 9 }}>Spending guardrails</div>
             <div className="display" style={{ fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>
-              {live ? "Active — enforced by Aiken validator" : "Contract not yet deployed"}
+              {live ? "Enforced on chain" : "Set your limits"}
             </div>
           </div>
-          {live ? (
-            <span className="stamp" style={{ borderColor: "var(--ok)", color: "var(--ok)" }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ok)" }}/>
-              ON-CHAIN
-            </span>
-          ) : (
-            <span className="stamp">OFFLINE</span>
-          )}
+          <span className="stamp" style={{ borderColor: live ? "var(--ok)" : "var(--ink-4)", color: live ? "var(--ok)" : "var(--ink-4)" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: live ? "var(--ok)" : "var(--ink-4)" }}/>
+            {live ? "ON-CHAIN" : "DRAFT"}
+          </span>
         </div>
 
-        <div>
-          {[
-            {
-              key: "per_tx_cap",
-              label: "Per-transaction cap",
-              val:   live ? `₳ ${fmtAda(r.perTxCapAda)}` : "Not set",
-              desc:  "Hard ceiling on any single agent-initiated spend. Exceeding this routes to the approvals queue.",
-              on:    live,
-              danger: false,
-            },
-            {
-              key: "daily_cap",
-              label: "Rolling 24h cap",
-              val:   live ? `₳ ${fmtAda(r.dailyCapAda)}` : "Not set",
-              desc:  "Cumulative limit per rolling 24-hour window. The window start is stored in the on-chain datum and resets automatically.",
-              on:    live,
-              danger: false,
-            },
-            {
-              key: "window_spent",
-              label: "Spent this window",
-              val:   live ? `₳ ${fmtAda(r.windowSpentAda)} (${r.pctUsed}%)` : "—",
-              desc:  "How much has been spent in the current 24h window. Resets when window_start + 86,400s passes.",
-              on:    live,
-              danger: r?.pctUsed > 80,
-            },
-            {
-              key: "freeze_switch",
-              label: "Emergency freeze",
-              val:   live ? (r.isFrozen ? "⚠ FROZEN" : "Active — not frozen") : "Off",
-              desc:  "When frozen, all Spend and OwnerAction redeemers are rejected. Only FreezeWallet redeemer succeeds. Owner must call ownerAction() to unfreeze.",
-              on:    live,
-              danger: live && r.isFrozen,
-            },
-            {
-              key: "whitelist_routing",
-              label: "Whitelist bypass",
-              val:   live ? `${r.allowedAddressCount ?? 0} addresses whitelisted` : "—",
-              desc:  "If the recipient's payment credential hash appears in allowed_addresses, the per-tx cap check is skipped entirely.",
-              on:    live && (r?.allowedAddressCount ?? 0) > 0,
-              danger: false,
-            },
-          ].map((row, i, arr) => (
-            <div key={row.key} style={{
-              display: "grid", gridTemplateColumns: "220px 1fr auto", gap: 20, alignItems: "start",
-              padding: "16px 20px",
-              borderBottom: i < arr.length - 1 ? "1px solid var(--paper-3)" : "none",
-              opacity: row.on || !live ? 1 : 0.5,
-              background: row.danger ? "rgba(180,40,40,0.04)" : "transparent",
-            }}>
-              <div>
-                <div className="mono" style={{ fontSize: 11, color: row.danger ? "var(--danger)" : live ? "var(--accent)" : "var(--ink-4)" }}>{row.key}</div>
-                <div style={{ fontFamily: "var(--serif)", fontSize: 14, fontWeight: 500, marginTop: 2 }}>{row.label}</div>
+        <div style={{ padding: "22px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22 }}>
+          <CapField
+            label="Per-transaction cap"
+            hint="The most the agent can move in a single transaction. Anything larger pauses for your approval."
+            value={perTx}
+            onChange={setPerTx}
+            live={live}
+            liveVal={live ? r.perTxCapAda : null}
+          />
+          <CapField
+            label="Rolling 24h cap"
+            hint="The most the agent can spend across a rolling 24-hour window. Resets automatically."
+            value={daily}
+            onChange={setDaily}
+            live={live}
+            liveVal={live ? r.dailyCapAda : null}
+          />
+        </div>
+
+        {live && (
+          <div style={{ padding: "0 20px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: "1.5px solid var(--paper-3)", background: "var(--paper-2)" }}>
+              <span className="mono" style={{ fontSize: 11, color: "var(--accent)" }}>Spent this window</span>
+              <span className="display" style={{ fontSize: 18, color: r.pctUsed > 80 ? "var(--danger)" : "var(--ink)" }}>₳ {fmtAda(r.windowSpentAda)}</span>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)" }}>of ₳ {fmtAda(r.dailyCapAda)} ({r.pctUsed}%)</span>
+              <div style={{ flex: 1, height: 6, background: "var(--paper-3)", border: "1px solid var(--ink-4)", position: "relative" }}>
+                <div style={{ position: "absolute", inset: 0, width: `${r.pctUsed}%`, background: r.pctUsed > 80 ? "var(--danger)" : "var(--ink-4)" }}/>
               </div>
-              <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.55, paddingTop: 2 }}>{row.desc}</div>
-              <div className="display" style={{
-                fontSize: 18, textAlign: "right", minWidth: 140,
-                color: row.danger ? "var(--danger)" : live ? "var(--ink)" : "var(--ink-4)",
-              }}>{row.val}</div>
             </div>
-          ))}
+          </div>
+        )}
+
+        <div style={{ padding: "16px 20px", borderTop: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
+            {live
+              ? "Saving updates your working policy. Applying on-chain requires your owner signature, so only you can change a live wallet's rules."
+              : "Saved here as your working policy. It is written into the contract datum when you deploy the wallet."}
+          </div>
+          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+            <button onClick={save} disabled={!dirty} className="ink-btn" style={{ height: 38, padding: "0 18px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)", opacity: dirty ? 1 : 0.5 }}>
+              Save policy
+            </button>
+            {live && (
+              <button onClick={() => setModal("api")} className="ink-btn ghost" style={{ height: 38, padding: "0 16px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)" }}>
+                Apply on-chain
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Update rules */}
-      <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", padding: "20px 20px", marginBottom: 22 }}>
-        <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 10, fontSize: 10 }}>Update rules on-chain (owner only)</div>
-        <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", marginBottom: 14, lineHeight: 1.55 }}>
-          Rules are immutable from the agent's perspective — only the owner PKH can update them by submitting an <strong>OwnerAction</strong> transaction.
-          Pass a new <code className="mono" style={{ fontSize: 12 }}>GuardrailConfig</code> to apply changes.
-        </div>
-        <CodeBlock lang="typescript" code={`import { ownerAction } from "./sdk/src/index.js";
-
-// Tighten the per-tx cap and raise the daily limit
-const txHash = await ownerAction(lucid, wallet, {
-  ...wallet.config,
-  perTxCapLovelace: 200_000_000n,    // ₳200 new per-tx cap
-  dailyCapLovelace: 5_000_000_000n,  // ₳5,000 new daily cap
-  isFrozen:         false,           // unfreeze if needed
-});
-console.log("Rules updated on-chain:", txHash);`}/>
-      </div>
-
-      {/* Freeze / unfreeze */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22 }}>
-        <div style={{ border: "1.5px solid var(--danger)", background: "var(--paper)", padding: "18px 20px" }}>
-          <div className="smallcaps" style={{ color: "var(--danger)", marginBottom: 8, fontSize: 10 }}>Emergency freeze</div>
-          <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", marginBottom: 12, lineHeight: 1.5 }}>
-            Immediately halts all agent spends. Uses FreezeWallet redeemer — sets <code className="mono" style={{ fontSize: 11 }}>is_frozen = true</code> in the continuing datum.
+      {/* Emergency freeze */}
+      <div style={{ border: `1.5px solid ${effectiveFrozen ? "var(--danger)" : "var(--ink)"}`, background: "var(--paper)", padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+        <div style={{ maxWidth: 620 }}>
+          <div className="smallcaps" style={{ color: effectiveFrozen ? "var(--danger)" : "var(--accent)", marginBottom: 6, fontSize: 10 }}>Emergency freeze</div>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55 }}>
+            {effectiveFrozen
+              ? "The wallet is frozen. Every agent spend is halted until you resume it."
+              : "Halt every agent spend in a single block. Use this the moment something looks wrong; you can resume at any time."}
           </div>
-          <CodeBlock lang="typescript" code={`await freezeWallet(lucid, wallet);`}/>
         </div>
-        <div style={{ border: "1.5px solid var(--ok)", background: "var(--paper)", padding: "18px 20px" }}>
-          <div className="smallcaps" style={{ color: "var(--ok)", marginBottom: 8, fontSize: 10 }}>Unfreeze &amp; restore</div>
-          <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", marginBottom: 12, lineHeight: 1.5 }}>
-            Owner submits an OwnerAction transaction with <code className="mono" style={{ fontSize: 11 }}>isFrozen: false</code> to resume agent spending.
-          </div>
-          <CodeBlock lang="typescript" code={`await ownerAction(lucid, wallet, {
-  ...wallet.config,
-  isFrozen: false,
-});`}/>
-        </div>
+        <button
+          onClick={() => setModal("freeze")}
+          className="ink-btn"
+          style={{ height: 42, padding: "0 20px", fontSize: 14, flexShrink: 0, background: effectiveFrozen ? "var(--danger)" : "var(--ink)", borderColor: effectiveFrozen ? "var(--danger)" : "var(--ink)", boxShadow: "2px 2px 0 var(--ink)" }}
+        >
+          <Icon.freeze size={15} color="var(--paper)"/>
+          {effectiveFrozen ? "Resume wallet" : "Freeze wallet"}
+        </button>
       </div>
     </div>
   );
 }
 
+function CapField({ label, hint, value, onChange, live, liveVal }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "var(--serif)", fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5, marginBottom: 10, minHeight: 38 }}>{hint}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1.5px solid var(--ink)", background: "var(--paper-2)", padding: "0 12px", height: 44 }}>
+        <span className="display" style={{ fontSize: 20, color: "var(--ink-3)" }}>₳</span>
+        <input
+          type="number" min="0.1" step="0.1" value={value}
+          onChange={e => onChange(e.target.value)}
+          className="display"
+          style={{ flex: 1, border: 0, outline: 0, background: "transparent", fontSize: 24, color: "var(--ink)", width: "100%" }}
+        />
+      </div>
+      {live && liveVal != null && (
+        <div className="mono" style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 6 }}>
+          LIVE ON-CHAIN: ₳ {fmtAda(liveVal)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════ PAGE: WHITELIST ════════════════════════════════ */
-function WhitelistPage({ agentState, showToast }) {
+function WhitelistPage({ agentState, showToast, policy, setPolicy }) {
   const ad    = agentState?.data;
   const live  = ad?.funded && ad?.rules;
-  const count = live ? (ad.rules.allowedAddressCount ?? 0) : 0;
+  const list  = policy.whitelist ?? [];
   const [addInput, setAddInput] = useStateD("");
 
   function handleAdd() {
-    if (!addInput.trim()) return;
-    showToast("To add an address, call ownerAction() from the SDK with the updated allowedCredentialHashes array.");
+    const addr = addInput.trim();
+    if (!addr) return;
+    if (!addr.startsWith("addr_test1")) { showToast("Enter a valid Preview testnet address (addr_test1…)."); return; }
+    if (list.includes(addr)) { showToast("That address is already on the list."); setAddInput(""); return; }
+    setPolicy(prev => ({ ...prev, whitelist: [...(prev.whitelist ?? []), addr] }));
     setAddInput("");
+    showToast(live ? "Added. Apply on-chain to register it with the validator." : "Address added to your trusted list.");
+  }
+
+  function handleRemove(addr) {
+    setPolicy(prev => ({ ...prev, whitelist: (prev.whitelist ?? []).filter(a => a !== addr) }));
+    showToast("Address removed from your trusted list.");
   }
 
   return (
@@ -1463,87 +1386,58 @@ function WhitelistPage({ agentState, showToast }) {
           <div>
             <div className="smallcaps" style={{ color: "var(--accent)", fontSize: 9 }}>Trusted addresses</div>
             <div className="display" style={{ fontSize: 22, lineHeight: 1.1, marginTop: 4 }}>
-              {count} address{count !== 1 ? "es" : ""} whitelisted
+              {list.length} address{list.length !== 1 ? "es" : ""} trusted
             </div>
           </div>
-          {live && (
-            <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
-              OWNER: {ad.rules.ownerPkh ? `${ad.rules.ownerPkh.slice(0, 14)}…` : "—"}
+          <span className="stamp" style={{ borderColor: live ? "var(--ok)" : "var(--ink-4)", color: live ? "var(--ok)" : "var(--ink-4)" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: live ? "var(--ok)" : "var(--ink-4)" }}/>
+            {live ? "ON-CHAIN" : "DRAFT"}
+          </span>
+        </div>
+
+        <div style={{ padding: "18px 20px" }}>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.55, marginBottom: 16 }}>
+            Addresses on this list bypass the per-transaction cap and settle straight away, with no
+            approval queue. Use it for counterparties you already trust, like a DEX or your own treasury.
+          </div>
+
+          {/* Add row */}
+          <div style={{ display: "flex", gap: 10, marginBottom: list.length ? 18 : 0 }}>
+            <input
+              value={addInput}
+              onChange={e => setAddInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
+              placeholder="addr_test1..."
+              style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid var(--ink)", background: "var(--paper-2)", fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink)", outline: 0 }}
+            />
+            <button onClick={handleAdd} className="ink-btn" style={{ height: 40, padding: "0 18px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)" }}>
+              <Icon.plus size={13} color="var(--paper)"/> Add address
+            </button>
+          </div>
+
+          {/* List */}
+          {list.length > 0 && (
+            <div style={{ border: "1.5px solid var(--ink)" }}>
+              {list.map((addr, i) => (
+                <div key={addr} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                  borderBottom: i < list.length - 1 ? "1px solid var(--paper-3)" : "none",
+                  background: "var(--paper)",
+                }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--ok)", border: "1.5px solid var(--ink)", flexShrink: 0 }}/>
+                  <span className="mono" style={{ flex: 1, fontSize: 12, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{addr}</span>
+                  <button onClick={() => handleRemove(addr)} title="Remove" style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-4)", fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                </div>
+              ))}
             </div>
           )}
         </div>
-        {count === 0 ? (
-          <div style={{ padding: "48px 24px", textAlign: "center" }}>
-            <div className="hand" style={{ fontSize: 36, color: live ? "var(--ok)" : "var(--ink-3)", marginBottom: 10 }}>
-              {live ? "empty — all addresses checked ✓" : "contract not deployed"}
-            </div>
-            <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-4)", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-              Addresses on this list bypass the per-tx cap and go straight to the chain — no approval queue required.
-            </div>
-          </div>
-        ) : (
-          <div style={{ padding: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "1.5px solid var(--ok)", background: "var(--paper-2)" }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--ok)", border: "1.5px solid var(--ink)", flexShrink: 0 }}/>
-              <div className="mono" style={{ fontSize: 12, color: "var(--ok)" }}>
-                {count} credential hash{count !== 1 ? "es" : ""} registered on-chain
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Add address (SDK-gated) */}
-      <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", padding: "20px 20px", marginBottom: 22 }}>
-        <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 8, fontSize: 10 }}>Add a trusted address</div>
-        <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-3)", marginBottom: 14, lineHeight: 1.5 }}>
-          Paste a Preview testnet address below. Beni will extract its payment credential hash. To actually register it on-chain, run the <code className="mono" style={{ fontSize: 12 }}>ownerAction()</code> SDK call shown beneath.
+        <div style={{ padding: "14px 20px", borderTop: "1.5px solid var(--ink)", background: "var(--paper-2)", fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
+          {live
+            ? "This is your working list. Registering it with the validator takes an owner-signed transaction, so a compromised agent can never widen its own whitelist."
+            : "Saved as your working list. It is written into the contract when you deploy the wallet."}
         </div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-          <input
-            value={addInput}
-            onChange={e => setAddInput(e.target.value)}
-            placeholder="addr_test1..."
-            style={{ flex: 1, height: 38, padding: "0 12px", border: "1.5px solid var(--ink)", background: "var(--paper-2)", fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink)", outline: 0 }}
-          />
-          <button onClick={handleAdd} className="ink-btn" style={{ height: 38, padding: "0 18px", fontSize: 13, boxShadow: "2px 2px 0 var(--ink)" }}>
-            <Icon.plus size={13} color="var(--paper)"/> Add
-          </button>
-        </div>
-        {addInput.trim() && (
-          <div style={{ marginBottom: 14, padding: "10px 14px", border: "1.5px dashed var(--ink-3)", background: "var(--paper-2)" }}>
-            <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", marginBottom: 4 }}>EXTRACTED CREDENTIAL HASH (example)</div>
-            <div className="mono" style={{ fontSize: 12, color: "var(--ink)", wordBreak: "break-all" }}>
-              {addInput.length > 10 ? addInput.replace(/^addr_test1/, "").slice(0, 56) + "…" : "enter a full address"}
-            </div>
-          </div>
-        )}
-        <CodeBlock lang="typescript" code={`import { ownerAction, getAddressDetails } from "./sdk/src/index.js";
-
-// Get credential hash from the address
-const { paymentCredential } = getAddressDetails("addr_test1...");
-const hash = paymentCredential.hash;
-
-await ownerAction(lucid, wallet, {
-  ...wallet.config,
-  allowedCredentialHashes: [
-    ...wallet.config.allowedCredentialHashes,
-    hash,
-  ],
-});`}/>
-      </div>
-
-      {/* Remove address */}
-      <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", padding: "20px 20px" }}>
-        <div className="smallcaps" style={{ color: "var(--accent)", marginBottom: 8, fontSize: 10 }}>Remove an address</div>
-        <CodeBlock lang="typescript" code={`// Filter out the hash and submit a new ownerAction
-const hashToRemove = "4b0f3ae1...";
-
-await ownerAction(lucid, wallet, {
-  ...wallet.config,
-  allowedCredentialHashes: wallet.config.allowedCredentialHashes
-    .filter(h => h !== hashToRemove),
-});`}/>
       </div>
     </div>
   );
@@ -1651,7 +1545,7 @@ function MonitorPage({ wallet, agentState }) {
         </div>
         <div>
           <div className="mono" style={{ fontSize: 11, letterSpacing: "0.12em", color: ad?.funded ? "var(--ok)" : "var(--ink-4)" }}>
-            {ad?.funded ? "LIVE — POLLING EVERY 30s" : "WAITING FOR CONTRACT"}
+            {ad?.funded ? "LIVE · POLLING EVERY 30s" : "WAITING FOR CONTRACT"}
           </div>
           <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", marginTop: 2 }}>
             {ad?.funded ? `Monitoring: ${ad.scriptAddress?.slice(0, 24)}…` : "Deploy an agent wallet to begin live monitoring"}
@@ -1705,11 +1599,8 @@ function MonitorPage({ wallet, agentState }) {
         ) : (
           <div style={{ padding: "80px 24px", textAlign: "center" }}>
             <div className="hand" style={{ fontSize: 40, color: "var(--ink-4)", marginBottom: 14 }}>watching…</div>
-            <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-4)", lineHeight: 1.6 }}>
-              No activity yet. Run an agent spend via the SDK and it will appear here within the next 30-second poll.
-            </div>
-            <div style={{ marginTop: 16 }}>
-              <span className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>npx tsx sdk/examples/demo.ts</span>
+            <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-4)", lineHeight: 1.6, maxWidth: 460, margin: "0 auto" }}>
+              No activity yet. Once your agent makes its first spend, it appears here within the next poll.
             </div>
           </div>
         )}
@@ -1721,7 +1612,7 @@ function MonitorPage({ wallet, agentState }) {
 /* ═══════════════════════════════ ASSISTANT PANEL ════════════════════════════ */
 function AssistantPanel({ wallet, agentState, setShowChat }) {
   const [messages, setMessages] = useStateD([
-    { who: "beni", text: "Hi! I'm Beni — your on-chain wallet guardian. Connect a wallet above to see your live balance, or ask me anything about how Beni's guardrails work." },
+    { who: "beni", text: "Hi! I'm Beni, your on-chain wallet guardian. Connect a wallet above to see your live balance, or ask me anything about how Beni's guardrails work." },
   ]);
   const [input, setInput] = useStateD("");
   const [loading, setLoading] = useStateD(false);
@@ -1735,7 +1626,7 @@ function AssistantPanel({ wallet, agentState, setShowChat }) {
     if (wallet.connected && messages.length === 1) {
       setMessages([{
         who: "beni",
-        text: `Wallet connected — ${wallet.addrShort}. Balance: ₳ ${fmtAda(wallet.balanceAda)} · ${wallet.txCount} transactions. To activate guardrails, deploy an agent wallet with the SDK.`,
+        text: `Wallet connected: ${wallet.addrShort}. Balance: ₳ ${fmtAda(wallet.balanceAda)} · ${wallet.txCount} transactions. To activate guardrails, deploy an agent wallet with the SDK.`,
       }]);
     }
   }, [wallet.connected]);
