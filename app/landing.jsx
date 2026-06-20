@@ -50,7 +50,7 @@ function Hero({ setPage }) {
         </div>
 
         {/* Sub + CTAs row */}
-        <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginTop: 56 }}>
+        <div className="rg-2" style={{ "--rg-cols": "1.4fr 1fr", "--rg-gap": "60px", "--rg-align": "end", marginTop: 88 }}>
           <p style={{ fontFamily: "var(--serif)", fontSize: 20, lineHeight: 1.45, margin: 0, maxWidth: 600, color: "var(--ink-2)" }}>
             Beni gives AI agents real wallets with spending limits
             <em style={{ color: "var(--ink)", fontStyle: "italic" }}> enforced by the Cardano ledger</em>,
