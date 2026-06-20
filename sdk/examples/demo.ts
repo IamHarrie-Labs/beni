@@ -200,7 +200,7 @@ async function demoOnChain() {
 
   section("On-chain: Create agent wallet (Preview testnet)");
   const lucid = await makeLucid({ network: "Preview", blockfrostApiKey: blockfrostKey });
-  lucid.selectWalletFromPrivateKey(agentKey);
+  lucid.selectWallet.fromPrivateKey(agentKey);
 
   try {
     const wallet = await createAgentWallet(lucid, walletConfig, 5n);
@@ -209,7 +209,7 @@ async function demoOnChain() {
     info("Waiting for tx confirmation…");
 
     section("On-chain: Valid spend within cap");
-    const destAddress = await lucid.wallet.address(); // send back to self for demo
+    const destAddress = await lucid.wallet().address(); // send back to self for demo
     const spend = await agentSpend(lucid, wallet, destAddress, 1_000_000n);
     ok(`TX confirmed: ${spend.txHash}`);
     ok(`Window spent: ${ada(spend.newConfig.windowSpent)}`);
