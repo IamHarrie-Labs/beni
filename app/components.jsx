@@ -407,8 +407,8 @@ const Icon = {
 function TopNav({ page, setPage, wallet }) {
   // "The dashboard" and "Brand book" removed from nav — access via Open Beni only
   const navItems = [
-    { id: "security", label: "How it's safe" },
-    { id: "docs",     label: "For developers" },
+    { id: "security", label: "Security" },
+    { id: "docs",     label: "Docs" },
   ];
 
   return (
