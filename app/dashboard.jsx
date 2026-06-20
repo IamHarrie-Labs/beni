@@ -604,8 +604,8 @@ function OverviewPage({ frozen, wallet, agentState, navigateTo }) {
         </div>
 
         <div style={{ padding: "14px 20px", border: "1.5px solid var(--ink)", background: "var(--paper-2)" }}>
-          <div className="smallcaps" style={{ color: "var(--ink-3)", marginBottom: 6 }}>24h spend curve</div>
-          <SpendCurve wallet={wallet}/>
+          <div className="smallcaps" style={{ color: "var(--ink-3)", marginBottom: 6 }}>Today's spend</div>
+          <SpendCurve agentState={agentState}/>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: 10 }}>
@@ -829,35 +829,34 @@ function WhitelistSummary({ agentState, navigateTo }) {
   );
 }
 
-// Deterministic pseudo-random float [0, 1) from a string.
-// Prevents bar heights from flickering on every re-render.
-function hashToFloat(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  return (h >>> 0) / 0xFFFFFFFF;
-}
-
-function SpendCurve({ wallet }) {
+// Real 24h spend gauge: shows window spend against the daily cap, straight from
+// the on-chain datum. Only a deployed, funded wallet has real spend data.
+function SpendCurve({ agentState }) {
   const w = 300, h = 52;
-  if (!wallet.connected || wallet.txs.length === 0) {
+  const r = agentState?.data?.funded ? agentState.data.rules : null;
+
+  if (!r || r.dailyCapAda == null) {
     return (
       <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} style={{ display: "block", marginTop: 4 }}>
-        <line x1="0" y1={h * 0.8} x2={w} y2={h * 0.8} stroke="var(--ink-4)" strokeWidth="1" strokeDasharray="4 4"/>
-        <text x={w/2} y={h * 0.45} textAnchor="middle" fontSize="9" fontFamily="var(--mono)" fill="var(--ink-4)">NO DATA</text>
+        <line x1="0" y1={h * 0.6} x2={w} y2={h * 0.6} stroke="var(--ink-4)" strokeWidth="1" strokeDasharray="4 4"/>
+        <text x={w / 2} y={h * 0.5} textAnchor="middle" fontSize="9" fontFamily="var(--mono)" fill="var(--ink-4)">NO SPEND DATA YET</text>
       </svg>
     );
   }
-  const txs = wallet.txs.slice().reverse();
-  const barW = Math.max(2, Math.floor(w / txs.length) - 2);
+
+  const pct  = Math.min(100, Math.max(0, r.pctUsed ?? 0));
+  const over = pct > 80;
+  const barY = h * 0.5 - 7;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} style={{ display: "block", marginTop: 4 }}>
-      <line x1="0" y1={h * 0.9} x2={w} y2={h * 0.9} stroke="var(--ink-4)" strokeWidth="1"/>
-      {txs.map((tx, i) => {
-        const x = i * (w / txs.length);
-        const barH = 8 + hashToFloat(tx.tx_hash) * 18;
-        return <rect key={tx.tx_hash} x={x + 1} y={h * 0.9 - barH} width={barW} height={barH} fill="var(--ink)" opacity="0.6"/>;
-      })}
-      <text x="4" y="10" fontSize="8" fontFamily="var(--mono)" fill="var(--accent)">{txs.length} TXS</text>
+      <rect x="0" y={barY} width={w} height="14" fill="var(--paper-3)" stroke="var(--ink-4)" strokeWidth="1"/>
+      <rect x="0" y={barY} width={w * pct / 100} height="14" fill={over ? "var(--danger)" : "var(--ink)"}/>
+      <text x="0" y="11" fontSize="9" fontFamily="var(--mono)" fill="var(--accent)">
+        ₳{fmtAda(r.windowSpentAda)} / ₳{fmtAda(r.dailyCapAda)}
+      </text>
+      <text x={w} y={h - 2} textAnchor="end" fontSize="8" fontFamily="var(--mono)" fill={over ? "var(--danger)" : "var(--ink-3)"}>
+        {pct}% OF DAILY CAP
+      </text>
     </svg>
   );
 }
