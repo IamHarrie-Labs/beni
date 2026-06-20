@@ -478,8 +478,8 @@ function Footer({ setPage }) {
           <div>
             <Wordmark size={28}/>
             <p style={{ fontSize: 17, lineHeight: 1.5, marginTop: 18, maxWidth: 320, color: "var(--ink-2)" }}>
-              Programmable safety for the agents that will be moving your money.
-              Built on Cardano. <span className="hand" style={{ fontSize: 22 }}>Hand-soldered with love.</span>
+              Programmable guardrails for AI-driven treasury operations and institutional wallet integrations.
+              Built on Cardano.
             </p>
           </div>
           {[
@@ -493,9 +493,6 @@ function Footer({ setPage }) {
             ]},
             { t: "Security", items: [
               { label: "How it's safe", action: () => setPage("security") },
-            ]},
-            { t: "Brand", items: [
-              { label: "Brand book", action: () => setPage("brand") },
             ]},
           ].map(col => (
             <div key={col.t}>
@@ -530,8 +527,8 @@ function Footer({ setPage }) {
           </div>
           <div style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.14em", lineHeight: 1.8 }}>
             <div>© 2026 Beni Labs</div>
-            <div>Printed on Cardano</div>
-            <div>Edition 0.4.1</div>
+            <div>Built on Cardano</div>
+            <div>v0.4 · Preview Testnet</div>
           </div>
         </div>
       </div>

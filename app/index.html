@@ -30,7 +30,7 @@
       // Never start on dashboard — must connect wallet first
       const [page, setPage] = useState(() => {
         const h = window.location.hash.replace("#", "");
-        return ["landing", "security", "docs", "brand"].includes(h) ? h : "landing";
+        return ["landing", "security", "docs"].includes(h) ? h : "landing";
       });
 
       // Wallet state — shared across the whole app
@@ -67,10 +67,8 @@
       else if (page === "dashboard") body = <Dashboard wallet={wallet}/>;
       else if (page === "security")  body = <SecurityPage/>;
       else if (page === "docs")      body = <DocsPage/>;
-      else if (page === "brand")     body = <BrandPage/>;
-
       // Dashboard + Docs are full-bleed; others show the footer
-      const showFooter = page === "landing" || page === "security" || page === "brand";
+      const showFooter = page === "landing" || page === "security";
 
       return (
         <>

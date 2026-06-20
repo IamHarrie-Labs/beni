@@ -12,10 +12,10 @@ function Hero({ setPage }) {
         {/* Top label row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
           <div className="smallcaps" style={{ color: "var(--accent)" }}>
-            Beni · Issue 04 · May 2026
+            Beni · Preview Testnet · 2026
           </div>
           <div className="smallcaps" style={{ color: "var(--ink-3)" }}>
-            A safety layer for autonomous AI wallets
+            Guardrails for institutional AI wallets
           </div>
         </div>
 
@@ -81,7 +81,7 @@ function Problem() {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1.1fr 1.4fr", "--rg-gap": "80px" }}>
           <div className="rg-sticky-off" style={{ position: "sticky", top: 100 }}>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter One · The mess</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>01 · The problem</span>
             {/* Reduced from 80px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 52px)", lineHeight: 0.96, margin: "20px 0 28px", letterSpacing: "-0.02em" }}>
               AI agents<br/>
@@ -140,7 +140,7 @@ function HowItWorks() {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1fr 1fr", "--rg-gap": "40px", "--rg-align": "end", marginBottom: 60 }}>
           <div>
-            <span className="smallcaps" style={{ color: "var(--accent-3)" }}>Chapter Two · How</span>
+            <span className="smallcaps" style={{ color: "var(--accent-3)" }}>02 · How it works</span>
             {/* Reduced from 96px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 62px)", lineHeight: 0.94, margin: "16px 0 0", letterSpacing: "-0.025em", color: "var(--paper)" }}>
               Every transaction<br/>passes through Beni.
@@ -247,7 +247,7 @@ function SdkSection({ setPage }) {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1fr 1.2fr", "--rg-gap": "80px", "--rg-align": "center" }}>
           <div>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Three · For builders</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>03 · Integration</span>
             {/* Reduced from 88px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 58px)", lineHeight: 0.94, margin: "16px 0 24px", letterSpacing: "-0.025em" }}>
               A few lines<br/>
@@ -330,7 +330,7 @@ function FAQ({ setPage }) {
       <div className="wide">
         <div className="rg-2" style={{ "--rg-cols": "1fr 1.6fr", "--rg-gap": "80px" }}>
           <div className="rg-sticky-off" style={{ position: "sticky", top: 100, alignSelf: "start" }}>
-            <span className="smallcaps" style={{ color: "var(--accent)" }}>Chapter Four · Q&amp;A</span>
+            <span className="smallcaps" style={{ color: "var(--accent)" }}>04 · FAQ</span>
             {/* Reduced from 88px */}
             <h2 className="display" style={{ fontSize: "clamp(34px, 7vw, 58px)", lineHeight: 0.94, margin: "16px 0 28px" }}>
               Questions,<br/>answered.
@@ -381,7 +381,7 @@ function FinalCTA({ setPage }) {
           <div className="rg-hide-mobile" style={{ position: "absolute", bottom: 40, left: 60, transform: "rotate(-12deg)" }}>
             <Asterisk size={56} color="var(--accent)"/>
           </div>
-          <div className="smallcaps" style={{ color: "var(--accent-3)", marginBottom: 24 }}>Last page</div>
+          <div className="smallcaps" style={{ color: "var(--accent-3)", marginBottom: 24 }}>Get started</div>
           {/* Reduced from clamp(80px,12vw,180px) */}
           <h2 className="display" style={{ fontSize: "clamp(48px, 8vw, 110px)", lineHeight: 0.88, margin: 0, letterSpacing: "-0.03em", color: "var(--paper)" }}>
             Give your<br/>
