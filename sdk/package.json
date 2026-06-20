@@ -30,6 +30,7 @@
     "@anthropic-ai/sdk": "^0.37.0",
     "@blockfrost/blockfrost-js": "^5.4.0",
     "@lucid-evolution/lucid": "^0.4.31",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "lucid-cardano": "^0.10.7"
   },
   "devDependencies": {

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "beni": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "C:\\Users\\IamHarrie\\Desktop\\Agentic Workflow\\Cardano build\\sdk\\mcp-server.ts"
+      ],
+      "env": {
+        "BLOCKFROST_PREVIEW_KEY": "previewXXXXXXXXXXXXXXXX",
+        "AGENT_PRIVATE_KEY": "ed25519_sk1..."
+      }
+    }
+  }
+}
