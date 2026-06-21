@@ -10,6 +10,20 @@
  *   npx tsx examples/demo.ts
  */
 
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Load .env from project root automatically
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../");
+const ENV_PATH = resolve(ROOT, ".env");
+if (existsSync(ENV_PATH)) {
+  for (const line of readFileSync(ENV_PATH, "utf-8").split("\n")) {
+    const [k, ...v] = line.trim().split("=");
+    if (k && v.length && !process.env[k]) process.env[k] = v.join("=").replace(/^["']|["']$/g, "");
+  }
+}
+
 import { makeLucid } from "../src/lucid-setup.js";
 import { createAgentWallet, agentSpend, freezeWallet } from "../src/index.js";
 import { validateSpend, computeNewWindowState } from "../src/validation.js";
@@ -185,7 +199,8 @@ async function demoGuardrails() {
 }
 
 // ── On-chain demo (Preview testnet) ──────────────────────────────────────────
-// Only runs when BLOCKFROST_PREVIEW_KEY and AGENT_PRIVATE_KEY are set.
+// Loads the deployed wallet from beni-wallet-state.json, does a real spend,
+// then freezes it. Requires BLOCKFROST_PREVIEW_KEY + AGENT_PRIVATE_KEY.
 
 async function demoOnChain() {
   const blockfrostKey = process.env.BLOCKFROST_PREVIEW_KEY;
@@ -198,30 +213,59 @@ async function demoOnChain() {
     return;
   }
 
-  section("On-chain: Create agent wallet (Preview testnet)");
+  // Load existing deployed wallet from beni-wallet-state.json
+  const statePath = resolve(ROOT, "beni-wallet-state.json");
+  const { existsSync, readFileSync } = await import("node:fs");
+  if (!existsSync(statePath)) {
+    console.log("\n  ── On-chain demo skipped ────────────────────────────────");
+    console.log("  No beni-wallet-state.json found.");
+    console.log("  Run: npx tsx sdk/scripts/deploy-wallet.ts");
+    return;
+  }
+
+  const raw = JSON.parse(readFileSync(statePath, "utf-8"));
+  const deployedWallet: import("../src/types.js").BeniWallet = {
+    scriptAddress:         raw.scriptAddress,
+    scriptCbor:            raw.scriptCbor,
+    threadTokenPolicyCbor: raw.threadTokenPolicyCbor,
+    config: {
+      perTxCapLovelace:        BigInt(raw.perTxCapLovelace),
+      dailyCapLovelace:        BigInt(raw.dailyCapLovelace),
+      allowedCredentialHashes: raw.allowedCredentialHashes ?? [],
+      ownerPkh:                raw.ownerPkh,
+      lastWindowStart:         BigInt(raw.lastWindowStart ?? 0),
+      windowSpent:             BigInt(raw.windowSpent ?? 0),
+      isFrozen:                raw.isFrozen ?? false,
+      threadTokenPolicyId:     raw.threadTokenPolicyId,
+    },
+  };
+
+  section("On-chain: Loaded existing agent wallet");
+  info(`Script address:  ${deployedWallet.scriptAddress}`);
+  info(`Thread token:    ${deployedWallet.config.threadTokenPolicyId}`);
+  info(`Per-tx cap:      ${ada(deployedWallet.config.perTxCapLovelace)}`);
+  info(`Daily cap:       ${ada(deployedWallet.config.dailyCapLovelace)}`);
+  info(`Frozen:          ${deployedWallet.config.isFrozen}`);
+
   const lucid = await makeLucid({ network: "Preview", blockfrostApiKey: blockfrostKey });
   lucid.selectWallet.fromPrivateKey(agentKey);
+  const agentAddress = await lucid.wallet().address();
+
+  if (deployedWallet.config.isFrozen) {
+    info("Wallet is currently frozen — skipping spend demo.");
+    return;
+  }
 
   try {
-    const wallet = await createAgentWallet(lucid, walletConfig, 5n);
-    ok(`Wallet deployed at: ${wallet.scriptAddress}`);
-    ok(`Thread token policy: ${wallet.config.threadTokenPolicyId}`);
-    info("Waiting for tx confirmation…");
-
-    section("On-chain: Valid spend within cap");
-    const destAddress = await lucid.wallet().address(); // send back to self for demo
-    const spend = await agentSpend(lucid, wallet, destAddress, 1_000_000n);
+    section("On-chain: Valid spend within cap (send 1 ADA to self)");
+    info(`Sending 1 ADA → ${agentAddress.slice(0, 30)}…`);
+    const spend = await agentSpend(lucid, deployedWallet, agentAddress, 1_000_000n);
     ok(`TX confirmed: ${spend.txHash}`);
-    ok(`Window spent: ${ada(spend.newConfig.windowSpent)}`);
-
-    section("On-chain: Freeze the wallet");
-    const freezeTx = await freezeWallet(lucid, wallet);
-    ok(`Freeze TX: ${freezeTx}`);
-    info("Wallet is now frozen — agent cannot spend until owner unfreezes");
+    ok(`Window spent: ${ada(spend.newConfig.windowSpent)} / ${ada(spend.newConfig.dailyCapLovelace)}`);
 
   } catch (err) {
     if (err instanceof GuardrailViolationError) {
-      ok(`Guardrail fired as expected: ${err.message}`);
+      ok(`Guardrail fired correctly: ${err.message}`);
     } else {
       throw err;
     }

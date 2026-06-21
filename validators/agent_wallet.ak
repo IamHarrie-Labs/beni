@@ -37,7 +37,6 @@ pub type WalletRedeemer {
 }
 
 /// Extract the raw credential hash from an address.
-/// Works for both verification key and script payment credentials.
 fn credential_hash(addr: Address) -> ByteArray {
   when addr.payment_credential is {
     VerificationKey(hash) -> hash
@@ -75,63 +74,72 @@ validator agent_wallet {
           // ── Spend ─────────────────────────────────────────────────────────
           // Agent spend — must satisfy all guardrails.
           Spend -> {
-            // 1. Reject immediately if frozen
+            // 1. Reject immediately if frozen.
             let not_frozen = !rules.is_frozen
 
-            // 2. Extract current POSIX time from tx validity range lower bound.
-            //    The SDK must set validFrom — the validator rejects txs without it.
+            // 2. Extract current POSIX time from the tx validity range lower bound.
+            //    SDK must always call validFrom() — the validator rejects txs without it.
             let now =
               when tx.validity_range.lower_bound.bound_type is {
                 Finite(t) -> t
-                // No finite lower bound — reject. SDK must always set validFrom.
                 _ -> fail
               }
 
-            // 3. Find the script input being spent (to get the script address).
+            // 3. Find the script input being spent to get the script address
+            //    and the lovelace locked before this spend.
             expect Some(own_input) =
               list.find(tx.inputs, fn(i) { i.output_reference == input })
             let script_addr = own_input.output.address
+            let script_input_lovelace = lovelace_of(own_input.output.value)
 
-            // 4. Sum lovelace going to non-whitelisted addresses.
-            let this_spend =
-              list.foldl(
+            // 4. Find the single continuing output back to the script address.
+            //    There must be exactly one — the thread token stays locked here.
+            expect [continuing] =
+              list.filter(tx.outputs, fn(o) { o.address == script_addr })
+
+            // 5. Thread token must stay in the continuing output.
+            let has_thread_token =
+              quantity_of(continuing.value, rules.thread_token_policy, "") == 1
+
+            // 6. Compute the net lovelace outflow from the script.
+            //    this_spend = what left the script, regardless of how many external
+            //    outputs the transaction has (recipient + agent change + fees, etc.).
+            //    This matches exactly what the SDK passes as the `lovelace` parameter.
+            let this_spend = script_input_lovelace - lovelace_of(continuing.value)
+
+            // 7. Check if any non-script output targets a whitelisted address.
+            //    Whitelisted sends bypass per-tx and daily caps entirely.
+            let any_whitelisted =
+              list.any(
                 tx.outputs,
-                0,
-                fn(output, acc) {
-                  if is_whitelisted(output.address, rules.allowed_addresses) {
-                    acc
-                  } else {
-                    acc + lovelace_of(output.value)
-                  }
+                fn(o) {
+                  o.address != script_addr && is_whitelisted(
+                    o.address,
+                    rules.allowed_addresses,
+                  )
                 },
               )
 
-            // 5. Per-tx cap check.
-            let per_tx_ok = this_spend <= rules.per_tx_cap
+            // 8. Per-tx cap: only enforced for non-whitelisted sends.
+            let per_tx_ok = any_whitelisted || this_spend <= rules.per_tx_cap
 
-            // 6. Daily rolling window check.
-            //    If we're still in the same window, accumulate. Otherwise reset.
+            // 9. Daily rolling window check.
+            //    If we're still in the same 24h window, accumulate. Otherwise reset.
             let in_window = now - rules.last_window_start < 86_400_000
             let daily_ok =
-              if in_window {
+              if any_whitelisted {
+                True
+              } else if in_window {
                 rules.window_spent + this_spend <= rules.daily_cap
               } else {
                 this_spend <= rules.daily_cap
               }
 
-            // 7. Verify the single continuing output back to the script address
-            //    carries an honestly-updated datum and the thread token.
-            expect [continuing] =
-              list.filter(tx.outputs, fn(o) { o.address == script_addr })
-
-            // Thread token must stay in the continuing output.
-            let has_thread_token =
-              quantity_of(continuing.value, rules.thread_token_policy, "") == 1
-
+            // 10. Decode the new datum from the continuing output.
             expect InlineDatum(raw_datum) = continuing.datum
             expect new_rules: WalletDatum = raw_datum
 
-            // Compute the expected new window state.
+            // 11. Compute the expected new window state.
             let expected_spent =
               if in_window {
                 rules.window_spent + this_spend
@@ -145,8 +153,8 @@ validator agent_wallet {
                 now
               }
 
-            // All immutable fields must be unchanged, and mutable fields
-            // must reflect exactly the spend that just happened.
+            // 12. All immutable fields must be unchanged; mutable fields must
+            //     reflect exactly the net spend that just happened.
             let continuing_ok =
               new_rules.per_tx_cap == rules.per_tx_cap && new_rules.daily_cap == rules.daily_cap && new_rules.allowed_addresses == rules.allowed_addresses && new_rules.owner_pkh == rules.owner_pkh && new_rules.thread_token_policy == rules.thread_token_policy && new_rules.window_spent == expected_spent && new_rules.last_window_start == expected_start && !new_rules.is_frozen
 
