@@ -96,6 +96,46 @@ npx tsx examples/demo.ts
 
 ---
 
+## MCP server
+
+Give any MCP-compatible AI agent a Beni-guarded wallet with zero Cardano setup. The `sdk/mcp-server.ts` process exposes five tools over Model Context Protocol:
+
+| Tool | Keys required | Description |
+|---|---|---|
+| `check_limits` | None | Validate a spend offline, instantly |
+| `get_status` | None | Caps, daily usage, frozen state |
+| `spend` | Blockfrost + agent key | Guarded spend to chain |
+| `freeze` | Blockfrost + agent key | Emergency freeze |
+| `create_wallet` | Blockfrost + agent key | Deploy a new wallet |
+
+**Claude Desktop setup** — add to `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "beni": {
+      "command": "npx",
+      "args": ["tsx", "C:/path/to/sdk/mcp-server.ts"],
+      "env": {
+        "BLOCKFROST_PREVIEW_KEY": "previewXXXXXXXXXXXXXXXX",
+        "AGENT_PRIVATE_KEY": "ed25519_sk1..."
+      }
+    }
+  }
+}
+```
+
+A ready-to-edit copy with the correct path is at `sdk/claude-desktop-config.example.json`.
+
+**Test offline (no keys needed):**
+
+```bash
+cd sdk && npx tsx examples/demo.ts
+# All 6 guardrail scenarios pass with no Blockfrost key
+```
+
+---
+
 ## SDK usage
 
 ```typescript
@@ -106,7 +146,7 @@ const lucid = await makeLucid({
   network: "Preview",
   blockfrostApiKey: process.env.BLOCKFROST_PREVIEW_KEY,
 });
-lucid.selectWalletFromPrivateKey(process.env.AGENT_PRIVATE_KEY);
+lucid.selectWallet.fromPrivateKey(process.env.AGENT_PRIVATE_KEY);
 
 // Deploy a new agent wallet on-chain
 const wallet = await createAgentWallet(lucid, {
@@ -138,6 +178,8 @@ beni/
 ├── tests/
 │   └── agent_wallet_test.ak   # Aiken on-chain tests
 ├── sdk/
+│   ├── mcp-server.ts          # MCP server — check_limits, get_status, spend, freeze, create_wallet
+│   ├── claude-desktop-config.example.json
 │   └── src/
 │       ├── index.ts           # createAgentWallet, agentSpend, ownerAction, freezeWallet
 │       ├── index-internal.ts  # Internal helpers
@@ -220,6 +262,7 @@ The `agent_wallet` validator checks on every spend that the continuing output ca
 - `queueSpend` / `approveSpend` — above-cap approval queue
 - Client-side guardrail validation (mirrors on-chain logic for fast UX feedback)
 - Full TypeScript types, error classes, Blockfrost provider factory
+- MCP server (`mcp-server.ts`) exposing 5 guardrail tools to any MCP-compatible AI agent
 
 ### Web app (React + Vercel)
 - **Landing page** — hero diagram, feature walkthrough, SDK code section, final CTA
@@ -231,9 +274,8 @@ The `agent_wallet` validator checks on every spend that the continuing output ca
   - Transactions — full tx history from Blockfrost
   - Monitor — live agent activity feed
 - **AI assistant** — Claude Haiku chatbot wired to the SDK, embedded in dashboard sidebar
-- **Docs site** — 13 sections across Getting Started, On-chain, and SDK Reference
-- **Brand book** — typographic system, colour palette, logo usage guidelines
-- **Emergency freeze modal** — context-sensitive (freeze vs unfreeze), shows real SDK code inline
+- **Docs site** — 14 sections across Getting Started, On-chain, SDK Reference, and Integrations
+- **Emergency freeze modal** — context-sensitive (freeze vs unfreeze), SDK guidance inline
 
 ### Brand
 - Typographic wordmark — "Beni" in DM Serif Display
@@ -288,9 +330,11 @@ Every push runs:
 - [x] Emergency freeze modal with SDK guidance
 - [x] Brand identity (typographic wordmark + terracotta dot)
 - [x] Deployed to Vercel
-- [ ] Approvals queue persistence (Vercel KV or Supabase)
-- [ ] End-to-end on-chain demo (`npx tsx sdk/examples/demo.ts`)
+- [x] Approvals queue persistence (Vercel KV — live in production)
+- [x] End-to-end demo script (`npx tsx sdk/examples/demo.ts` — 6 scenarios, offline)
+- [x] MCP server (`sdk/mcp-server.ts` — plug Beni into any Claude/MCP agent)
 - [ ] Multi-agent sidebar support
+- [ ] npm publish (`beni-sdk`)
 - [ ] Hackathon submission (video, pitch deck)
 
 ---

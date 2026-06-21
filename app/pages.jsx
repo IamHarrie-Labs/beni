@@ -217,6 +217,9 @@ const DOC_NAV = [
     { k: "rule_whitelist",        l: "rule.whitelist()" },
     { k: "rule_require_approval", l: "rule.requireApproval()" },
   ]},
+  { group: "Integrations", items: [
+    { k: "mcp_server", l: "MCP server" },
+  ]},
 ];
 
 // "On this page" headings per section
@@ -234,6 +237,7 @@ const ON_THIS_PAGE = {
   rule_daily_cap:       ["Options", "Window reset", "Example"],
   rule_whitelist:       ["Address list", "Credential hash", "Example"],
   rule_require_approval:["Threshold", "Queue behavior", "Example"],
+  mcp_server:           ["What is it", "Setup", "Available tools", "Testing offline", "Claude Desktop config"],
 };
 
 function DocsPage() {
@@ -254,6 +258,7 @@ function DocsPage() {
     rule_daily_cap:       { title: "rule.dailyCap()",       body: <RuleDailyCapBody/> },
     rule_whitelist:       { title: "rule.whitelist()",      body: <RuleWhitelistBody/> },
     rule_require_approval:{ title: "rule.requireApproval()",body: <RuleRequireApprovalBody/> },
+    mcp_server:           { title: "MCP server",            body: <McpServerBody/> },
   };
 
   // Flatten all items for search
@@ -750,6 +755,78 @@ const txHash = await approveSpend(lucid, wallet, queue[0].id);
 // No on-chain transaction — just marks the queue entry as rejected.
 await rejectSpend(wallet, queue[0].id);`}</CodeSnippet>
       <Callout accent title="Live on Vercel KV">The approval queue is backed by Vercel KV in production. Items persist across restarts and are visible across all dashboard sessions.</Callout>
+    </>
+  );
+}
+
+function McpServerBody() {
+  return (
+    <>
+      <P>The Beni MCP server exposes guardrail tools directly to any MCP-compatible AI agent — including Claude Desktop. The agent calls <code className="mono" style={{ color: "var(--accent)" }}>check_limits</code> or <code className="mono" style={{ color: "var(--accent)" }}>spend</code> without ever touching Lucid, Aiken, or Blockfrost.</P>
+
+      <H2>What is it</H2>
+      <P>A lightweight Node.js process (<code className="mono">sdk/mcp-server.ts</code>) that implements the <a href="https://modelcontextprotocol.io" target="_blank" style={{ color: "var(--accent)" }}>Model Context Protocol</a>. Once connected, any MCP-capable agent gets five tools:</P>
+      <div style={{ border: "1.5px solid var(--ink)", marginBottom: 24, boxShadow: "4px 4px 0 var(--ink)" }}>
+        {[
+          { name: "check_limits", desc: "Validate a proposed spend offline, instantly. No keys needed.", badge: "offline" },
+          { name: "get_status",   desc: "Current caps, daily usage, frozen state, window reset time.", badge: "offline" },
+          { name: "spend",        desc: "Submit a guarded spend to chain. Guardrails enforced on-chain.", badge: "on-chain" },
+          { name: "freeze",       desc: "Emergency freeze the wallet. Irreversible without ownerAction.", badge: "on-chain" },
+          { name: "create_wallet",desc: "Deploy a new Beni wallet on Preview testnet.", badge: "on-chain" },
+        ].map((t, i, arr) => (
+          <div key={t.name} style={{ display: "grid", gridTemplateColumns: "200px 1fr auto", gap: 16, alignItems: "center", padding: "16px 20px", borderBottom: i < arr.length - 1 ? "1.5px solid var(--ink)" : "none" }}>
+            <code className="mono" style={{ fontSize: 13, color: "var(--accent)" }}>{t.name}</code>
+            <span style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-2)" }}>{t.desc}</span>
+            <span className="smallcaps" style={{ fontSize: 10, padding: "3px 8px", border: "1.5px solid var(--ink)", color: t.badge === "offline" ? "var(--ink-3)" : "var(--accent)" }}>{t.badge}</span>
+          </div>
+        ))}
+      </div>
+
+      <H2>Setup</H2>
+      <P>Install dependencies (one-time):</P>
+      <CodeSnippet lang="BASH">{`cd sdk && npm install`}</CodeSnippet>
+      <P>The server is ready. No build step — it runs directly with <code className="mono">tsx</code>.</P>
+
+      <H2>Testing offline</H2>
+      <P>The offline tools work with no keys and no deployed wallet. Run the server and call it from another terminal to verify:</P>
+      <CodeSnippet lang="BASH">{`# Start the server (it listens on stdin/stdout — this is just for manual testing)
+npx tsx sdk/mcp-server.ts`}</CodeSnippet>
+      <P>Or run the guardrail demo (which exercises the same validation logic):</P>
+      <CodeSnippet lang="BASH">{`cd sdk && npx tsx examples/demo.ts
+# Runs all 6 guardrail scenarios offline. No Blockfrost key required.`}</CodeSnippet>
+
+      <H2>Available tools</H2>
+      <CodeSnippet lang="TYPESCRIPT">{`// check_limits — instant, no keys required
+{ amount_ada: 1.5, to_address?: "addr_test1..." }
+
+// get_status — reads beni-wallet-state.json if present
+{}
+
+// spend — requires BLOCKFROST_PREVIEW_KEY + AGENT_PRIVATE_KEY
+{ amount_ada: 1.5, to_address: "addr_test1...", reason?: "Pay invoice" }
+
+// freeze — requires BLOCKFROST_PREVIEW_KEY + AGENT_PRIVATE_KEY
+{ reason?: "Suspicious activity detected" }
+
+// create_wallet — requires BLOCKFROST_PREVIEW_KEY + AGENT_PRIVATE_KEY + ₳8 on agent address
+{ per_tx_cap_ada: 10, daily_cap_ada: 100, initial_ada?: 5 }`}</CodeSnippet>
+
+      <H2>Claude Desktop config</H2>
+      <P>Add this to <code className="mono">%APPDATA%\Claude\claude_desktop_config.json</code> (Windows) or <code className="mono">~/Library/Application Support/Claude/claude_desktop_config.json</code> (Mac):</P>
+      <CodeSnippet lang="JSON">{`{
+  "mcpServers": {
+    "beni": {
+      "command": "npx",
+      "args": ["tsx", "/absolute/path/to/sdk/mcp-server.ts"],
+      "env": {
+        "BLOCKFROST_PREVIEW_KEY": "previewXXXXXXXXXXXXXXXX",
+        "AGENT_PRIVATE_KEY": "ed25519_sk1..."
+      }
+    }
+  }
+}`}</CodeSnippet>
+      <P>A ready-to-edit example with the correct path for this project is at <code className="mono">sdk/claude-desktop-config.example.json</code>.</P>
+      <Callout accent title="No keys? Still useful.">Leave the env block empty and the offline tools (<code className="mono">check_limits</code>, <code className="mono">get_status</code>) still work. You can simulate guardrail decisions before you have a deployed wallet.</Callout>
     </>
   );
 }
