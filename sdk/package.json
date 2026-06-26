@@ -11,13 +11,24 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "npx tsx --test src/test/validation.test.ts",
     "typecheck": "tsc --noEmit",
-    "chat": "npx tsx src/chat-server.ts"
+    "chat": "npx tsx src/chat-server.ts",
+    "prepublishOnly": "npm run build"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IamHarrie-Labs/beni.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/IamHarrie-Labs/beni#readme",
   "keywords": [
     "cardano",
     "aiken",

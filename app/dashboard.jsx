@@ -117,6 +117,133 @@ function Modal({ title, onClose, children, wide }) {
   );
 }
 
+// ── Deploy modal ──────────────────────────────────────────────────────────────
+const DEPLOY_API = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:3001/api/deploy"
+  : "/api/deploy";
+
+function DeployModal({ policy, onClose, onDeployed }) {
+  const [perTxCap, setPerTxCap]   = useStateD(policy.perTxCapAda ?? 500);
+  const [dailyCap, setDailyCap]   = useStateD(policy.dailyCapAda ?? 2500);
+  const [ownerPkh, setOwnerPkh]   = useStateD("");
+  const [status, setStatus]       = useStateD("idle"); // idle | deploying | done | error
+  const [result, setResult]       = useStateD(null);
+  const [errMsg, setErrMsg]       = useStateD("");
+
+  async function deploy() {
+    setStatus("deploying");
+    setErrMsg("");
+    try {
+      const res = await fetch(DEPLOY_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          perTxCapLovelace:  Math.round(perTxCap  * 1_000_000),
+          dailyCapLovelace:  Math.round(dailyCap  * 1_000_000),
+          ownerPkh: ownerPkh.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? "Deploy failed");
+      setResult(data);
+      setStatus("done");
+      onDeployed(data);
+    } catch (err) {
+      setErrMsg(err.message);
+      setStatus("error");
+    }
+  }
+
+  const row = (label, value) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--paper-3)" }}>
+      <span style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)" }}>{label}</span>
+      <span className="mono" style={{ fontSize: 12, color: "var(--ink)" }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <Modal title="Deploy agent wallet" onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {status === "idle" || status === "error" ? (<>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6 }}>
+            Set your guardrail limits below. The wallet deploys on-chain using the agent key
+            already configured in your Vercel environment — no terminal needed.
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 13, fontWeight: 500 }}>Per-transaction cap (ADA)</span>
+              <input
+                type="number" min="1" step="1" value={perTxCap}
+                onChange={e => setPerTxCap(Number(e.target.value))}
+                style={{ height: 38, padding: "0 12px", border: "1.5px solid var(--ink)", background: "var(--paper)", fontFamily: "var(--mono)", fontSize: 14, color: "var(--ink)", outline: "none" }}
+              />
+              <span style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>Hard ceiling per single transaction</span>
+            </label>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 13, fontWeight: 500 }}>Daily cap (ADA)</span>
+              <input
+                type="number" min="1" step="1" value={dailyCap}
+                onChange={e => setDailyCap(Number(e.target.value))}
+                style={{ height: 38, padding: "0 12px", border: "1.5px solid var(--ink)", background: "var(--paper)", fontFamily: "var(--mono)", fontSize: 14, color: "var(--ink)", outline: "none" }}
+              />
+              <span style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>Rolling 24-hour spending budget</span>
+            </label>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 13, fontWeight: 500 }}>Owner PKH <span style={{ fontWeight: 400, color: "var(--ink-3)" }}>(optional)</span></span>
+              <input
+                type="text" value={ownerPkh} placeholder="Leave blank to use agent key as owner"
+                onChange={e => setOwnerPkh(e.target.value)}
+                style={{ height: 38, padding: "0 12px", border: "1.5px solid var(--ink)", background: "var(--paper)", fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink)", outline: "none" }}
+              />
+              <span style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>Payment credential hash of the wallet that can freeze or reclaim funds</span>
+            </label>
+          </div>
+
+          {status === "error" && (
+            <div style={{ padding: "12px 14px", border: "1.5px solid var(--err)", background: "rgba(220,50,50,0.05)", fontFamily: "var(--mono)", fontSize: 12, color: "var(--err)", lineHeight: 1.5 }}>
+              {errMsg}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={deploy} className="ink-btn" style={{ flex: 1, height: 42, fontSize: 14, boxShadow: "2px 2px 0 var(--ink)" }}>
+              Deploy on-chain
+            </button>
+            <button onClick={onClose} className="ink-btn ghost" style={{ height: 42, padding: "0 20px", fontSize: 14 }}>
+              Cancel
+            </button>
+          </div>
+        </>) : status === "deploying" ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "24px 0" }}>
+            <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)" }}>Minting thread token and locking datum…</div>
+            <div style={{ fontFamily: "var(--serif)", fontSize: 12, color: "var(--ink-3)" }}>This takes a few seconds. Do not close this window.</div>
+          </div>
+        ) : result ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ padding: "12px 14px", border: "1.5px solid var(--ok)", background: "rgba(0,180,80,0.05)", fontFamily: "var(--serif)", fontSize: 14, color: "var(--ink)", lineHeight: 1.6 }}>
+              Wallet deployed. The dashboard will update automatically.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {row("Script address", result.scriptAddress?.slice(0, 24) + "…")}
+              {row("Thread token",   result.threadTokenPolicyId?.slice(0, 24) + "…")}
+              {row("Deploy TX",      result.deployTxHash?.slice(0, 16) + "…")}
+              {row("Per-tx cap",     (Number(result.perTxCapLovelace) / 1_000_000) + " ADA")}
+              {row("Daily cap",      (Number(result.dailyCapLovelace) / 1_000_000) + " ADA")}
+            </div>
+            <a href={result.explorerUrl} target="_blank" rel="noreferrer" className="ink-btn" style={{ display: "grid", placeItems: "center", height: 42, fontSize: 14, textDecoration: "none", boxShadow: "2px 2px 0 var(--ink)" }}>
+              View on Cardanoscan
+            </a>
+          </div>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
 /* ═══════════════════════════════ ROOT ═══════════════════════════════════════ */
 function Dashboard({ wallet }) {
   const [activePage, setActivePage] = useStateD("overview");
@@ -171,33 +298,15 @@ function Dashboard({ wallet }) {
 
       {/* ── Modals ── */}
       {modal === "add-agent" && (
-        <Modal title="Deploy a new agent wallet" onClose={() => setModal(null)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <div style={{ fontFamily: "var(--serif)", fontSize: 15, color: "var(--ink-2)", lineHeight: 1.6 }}>
-              Each Beni agent wallet is an Aiken smart contract on Cardano Preview, with its own
-              one-shot thread token. Deployment runs once from the SDK and writes a wallet-state
-              file you point the dashboard at.
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                ["Generate a signing key", "Create the agent's keypair and fund it from the Preview faucet."],
-                ["Set your guardrails", "Pick a per-transaction cap and a daily cap on the Rules page."],
-                ["Deploy on-chain", "One SDK command mints the thread token and locks the config datum."],
-              ].map(([t, d], i) => (
-                <div key={t} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                  <span style={{ width: 24, height: 24, flexShrink: 0, border: "1.5px solid var(--ink)", background: "var(--paper-2)", display: "grid", placeItems: "center", fontFamily: "var(--mono)", fontSize: 12 }}>{i + 1}</span>
-                  <div>
-                    <div style={{ fontFamily: "var(--serif)", fontSize: 14, fontWeight: 500 }}>{t}</div>
-                    <div style={{ fontFamily: "var(--serif)", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>{d}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button onClick={() => window.open(`${GITHUB_URL}#deploying-a-wallet`, "_blank")} className="ink-btn" style={{ height: 42, fontSize: 14, boxShadow: "2px 2px 0 var(--ink)" }}>
-              <Icon.github size={15}/> Full deploy guide on GitHub
-            </button>
-          </div>
-        </Modal>
+        <DeployModal
+          policy={policy}
+          onClose={() => setModal(null)}
+          onDeployed={(result) => {
+            setModal(null);
+            agentState.refresh();
+            showToast(`Wallet deployed — TX: ${result.deployTxHash.slice(0, 12)}…`);
+          }}
+        />
       )}
 
       {modal === "api" && (

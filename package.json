@@ -5,6 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
+    "@lucid-evolution/lucid": "^0.4.31",
     "@vercel/kv": "^3.0.0"
   }
 }
