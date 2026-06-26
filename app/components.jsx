@@ -53,7 +53,7 @@ function useWallet() {
     setState(s => ({ ...s, connecting: true, error: null }));
     try {
       const api     = await window.cardano[walletKey].enable();
-      const hexAddr = await api.getChangeAddress();
+      const hexAddr = (await api.getChangeAddress()).replace(/^﻿/, "").trim();
 
       const [addrRes, txRes] = await Promise.all([
         fetch(`${BLOCKFROST_API}?action=address&addr=${hexAddr}`),
