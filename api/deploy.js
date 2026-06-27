@@ -136,6 +136,20 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("[Beni] deploy error:", err.message);
-    return res.status(500).json({ error: err.message });
+
+    // Translate the common stale-UTxO race into a clear, actionable message.
+    // After any spend, the agent's single change UTxO takes ~30-60s to settle
+    // in Blockfrost's indexer. A deploy clicked inside that window builds its
+    // transaction against an already-spent input and the node rejects it with
+    // BadInputsUTxO / TranslationLogicMissingInput / ValueNotConservedUTxO.
+    const raw = err.message ?? "";
+    if (/BadInputsUTxO|TranslationLogicMissingInput|ValueNotConservedUTxO|MissingInput/.test(raw)) {
+      return res.status(409).json({
+        error: "Your previous transaction is still settling on-chain. Wait ~30-60 seconds for the wallet's UTxO to confirm, then deploy again.",
+        code: "UTXO_SETTLING",
+      });
+    }
+
+    return res.status(500).json({ error: raw });
   }
 }
