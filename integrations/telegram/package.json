@@ -1,0 +1,16 @@
+{
+  "name": "beni-telegram-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Control your Beni agent wallet from Telegram — guarded spends, owner approvals, emergency freeze.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "beni-sdk": "^0.1.0",
+    "dotenv": "^16.4.5",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
