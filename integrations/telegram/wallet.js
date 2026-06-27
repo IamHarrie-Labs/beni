@@ -25,6 +25,7 @@ export function requireEnv(name) {
 }
 
 export function loadWalletState() {
+  if (process.env.BENI_STATE_JSON) return JSON.parse(process.env.BENI_STATE_JSON);
   return JSON.parse(readFileSync(STATE_PATH, "utf-8"));
 }
 
